@@ -6,7 +6,7 @@
 
 ```powershell
 # Setup (one time)
-./setup-mcp-bridge.ps1
+./scripts/setup-mcp-bridge.ps1
 
 # Run the bridge
 npm start
@@ -46,7 +46,7 @@ docker-compose up -d
 
 ```powershell
 # Run setup script
-./setup-mcp-bridge.ps1
+./scripts/setup-mcp-bridge.ps1
 
 # This will:
 # - Check Node.js installation
@@ -309,7 +309,7 @@ docker-compose logs mcp-server
 - **Full Guide**: `COPILOT_MCP_INTEGRATION.md`
 - **API Docs**: `API.md`
 - **Bridge Script**: `mcp-bridge.js`
-- **Setup Script**: `setup-mcp-bridge.ps1`
+- **Setup Script**: `scripts/setup-mcp-bridge.ps1`
 
 ---
 

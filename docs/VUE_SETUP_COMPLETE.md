@@ -38,7 +38,7 @@ The MCP Task Tracker now has a modern Vue.js 3 frontend with a powerful developm
 - Touch-friendly UI elements
 
 ### 4. Development Tools
-- **setup-vue.ps1** - Automated setup script
+- **scripts/setup-vue.ps1** - Automated setup script
 - **Dockerfile.vue** - Multi-stage Docker build
 - **vite.config.js** - Optimized dev server with proxies
 - Hot Module Replacement (HMR) for instant updates

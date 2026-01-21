@@ -89,7 +89,7 @@
                            │
                            ▼
    ┌─────────────────────────────────────────────────────────┐
-   │ $ .\setup-agent.ps1 -Interactive                        │
+   │ $ .\scripts\setup-agent.ps1 -Interactive                        │
    │ → Create Project: "InvoiceAI"                           │
    │ → Register Agent: "InvoiceAI-Frontend"                  │
    │ → Role: frontend                                         │

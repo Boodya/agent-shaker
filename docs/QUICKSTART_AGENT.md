@@ -11,7 +11,7 @@ docker-compose up -d
 ### 2. Run the Setup Script (Interactive Mode)
 
 ```powershell
-.\setup-agent.ps1 -Interactive
+.\scripts\setup-agent.ps1 -Interactive
 ```
 
 Follow the prompts to:
@@ -51,7 +51,7 @@ Show-AgentInfo
 docker-compose up -d
 
 # 2. Setup agent (non-interactive)
-.\setup-agent.ps1 -ProjectName "InvoiceAI" -AgentName "InvoiceAI-Frontend" -Role "frontend"
+.\scripts\setup-agent.ps1 -ProjectName "InvoiceAI" -AgentName "InvoiceAI-Frontend" -Role "frontend"
 
 # 3. Load helper
 . .\agent-helper-InvoiceAI-Frontend.ps1
@@ -106,10 +106,10 @@ Show-AgentInfo
 
 ```powershell
 # Setup frontend agent
-.\setup-agent.ps1 -ProjectName "InvoiceAI" -AgentName "InvoiceAI-Frontend" -Role "frontend"
+.\scripts\setup-agent.ps1 -ProjectName "InvoiceAI" -AgentName "InvoiceAI-Frontend" -Role "frontend"
 
 # Setup backend agent
-.\setup-agent.ps1 -ProjectName "InvoiceAI" -AgentName "InvoiceAI-Backend" -Role "backend"
+.\scripts\setup-agent.ps1 -ProjectName "InvoiceAI" -AgentName "InvoiceAI-Backend" -Role "backend"
 
 # Now you have two agents collaborating on the same project!
 ```

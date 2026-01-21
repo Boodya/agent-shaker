@@ -336,7 +336,7 @@ curl http://localhost:80/api/projects
 
 ```powershell
 # Setup and run
-.\setup-mcp-bridge.ps1
+.\scripts\setup-mcp-bridge.ps1
 npm start
 
 # Commands
