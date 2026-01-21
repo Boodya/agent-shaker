@@ -1,90 +1,110 @@
 <template>
-  <div class="documentation">
-    <div class="docs-header">
-      <h1>📚 Documentation</h1>
-      <p>Browse project documentation and guides</p>
+  <div>
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">📚 Documentation</h1>
+      <p class="text-gray-600 mt-2">Browse project documentation and guides</p>
     </div>
 
-    <div class="docs-layout">
+    <div class="flex gap-8">
       <!-- Sidebar with document list -->
-      <aside class="docs-sidebar">
-        <div class="docs-nav">
-          <h3>📖 Guides</h3>
-          <ul class="docs-list">
-            <li 
-              v-for="doc in guidesDocs" 
-              :key="doc.path"
-              :class="{ active: currentDoc === doc.path }"
-              @click="loadDoc(doc.path)"
-            >
-              <span class="doc-icon">{{ doc.icon }}</span>
-              <span class="doc-name">{{ doc.name }}</span>
-            </li>
-          </ul>
+      <aside class="w-80 flex-shrink-0">
+        <div class="space-y-6">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">📖 Guides</h3>
+            <ul class="space-y-1">
+              <li 
+                v-for="doc in guidesDocs" 
+                :key="doc.path"
+                :class=" [
+                  'flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-gray-100 transition-colors',
+                  currentDoc === doc.path ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                ]"
+                @click="loadDoc(doc.path)"
+              >
+                <span class="text-lg">{{ doc.icon }}</span>
+                <span class="text-sm font-medium">{{ doc.name }}</span>
+              </li>
+            </ul>
+          </div>
 
-          <h3>🏗️ Architecture</h3>
-          <ul class="docs-list">
-            <li 
-              v-for="doc in archDocs" 
-              :key="doc.path"
-              :class="{ active: currentDoc === doc.path }"
-              @click="loadDoc(doc.path)"
-            >
-              <span class="doc-icon">{{ doc.icon }}</span>
-              <span class="doc-name">{{ doc.name }}</span>
-            </li>
-          </ul>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">🏗️ Architecture</h3>
+            <ul class="space-y-1">
+              <li 
+                v-for="doc in archDocs" 
+                :key="doc.path"
+                :class=" [
+                  'flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-gray-100 transition-colors',
+                  currentDoc === doc.path ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                ]"
+                @click="loadDoc(doc.path)"
+              >
+                <span class="text-lg">{{ doc.icon }}</span>
+                <span class="text-sm font-medium">{{ doc.name }}</span>
+              </li>
+            </ul>
+          </div>
 
-          <h3>📡 API & Integration</h3>
-          <ul class="docs-list">
-            <li 
-              v-for="doc in apiDocs" 
-              :key="doc.path"
-              :class="{ active: currentDoc === doc.path }"
-              @click="loadDoc(doc.path)"
-            >
-              <span class="doc-icon">{{ doc.icon }}</span>
-              <span class="doc-name">{{ doc.name }}</span>
-            </li>
-          </ul>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">📡 API & Integration</h3>
+            <ul class="space-y-1">
+              <li 
+                v-for="doc in apiDocs" 
+                :key="doc.path"
+                :class=" [
+                  'flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-gray-100 transition-colors',
+                  currentDoc === doc.path ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                ]"
+                @click="loadDoc(doc.path)"
+              >
+                <span class="text-lg">{{ doc.icon }}</span>
+                <span class="text-sm font-medium">{{ doc.name }}</span>
+              </li>
+            </ul>
+          </div>
 
-          <h3>ℹ️ About</h3>
-          <ul class="docs-list">
-            <li 
-              v-for="doc in aboutDocs" 
-              :key="doc.path"
-              :class="{ active: currentDoc === doc.path }"
-              @click="loadDoc(doc.path)"
-            >
-              <span class="doc-icon">{{ doc.icon }}</span>
-              <span class="doc-name">{{ doc.name }}</span>
-            </li>
-          </ul>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">ℹ️ About</h3>
+            <ul class="space-y-1">
+              <li 
+                v-for="doc in aboutDocs" 
+                :key="doc.path"
+                :class=" [
+                  'flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-gray-100 transition-colors',
+                  currentDoc === doc.path ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                ]"
+                @click="loadDoc(doc.path)"
+              >
+                <span class="text-lg">{{ doc.icon }}</span>
+                <span class="text-sm font-medium">{{ doc.name }}</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </aside>
 
       <!-- Main content area -->
-      <main class="docs-content">
-        <div v-if="loading" class="loading">
-          <div class="spinner"></div>
-          <p>Loading documentation...</p>
+      <main class="flex-1">
+        <div v-if="loading" class="text-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-500">Loading documentation...</p>
         </div>
 
-        <div v-else-if="error" class="error-state">
-          <span class="error-icon">⚠️</span>
-          <h2>Failed to Load Document</h2>
-          <p>{{ error }}</p>
-          <button @click="loadDoc(currentDoc)" class="btn btn-primary">
+        <div v-else-if="error" class="text-center py-12">
+          <span class="text-4xl mb-4">⚠️</span>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Failed to Load Document</h2>
+          <p class="text-gray-600 mb-4">{{ error }}</p>
+          <button @click="loadDoc(currentDoc)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
             Try Again
           </button>
         </div>
 
-        <div v-else-if="content" class="markdown-content" v-html="renderedContent"></div>
+        <div v-else-if="content" class="prose max-w-none" v-html="renderedContent"></div>
 
-        <div v-else class="empty-state">
-          <span class="empty-icon">📄</span>
-          <h2>Select a Document</h2>
-          <p>Choose a document from the sidebar to view its contents</p>
+        <div v-else class="text-center py-12">
+          <span class="text-4xl mb-4">📄</span>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Select a Document</h2>
+          <p class="text-gray-600">Choose a document from the sidebar to view its contents</p>
         </div>
       </main>
     </div>

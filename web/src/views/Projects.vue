@@ -1,67 +1,67 @@
 <template>
-  <div class="projects-page">
-    <div class="container">
-      <div class="page-header">
-        <h2>Projects</h2>
-        <button @click="showCreateModal = true" class="btn btn-primary">
-          + Create Project
-        </button>
-      </div>
+  <div>
+    <div class="flex justify-between items-center mb-8">
+      <h2 class="text-3xl font-bold text-gray-900">Projects</h2>
+      <button @click="showCreateModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
+        + Create Project
+      </button>
+    </div>
 
-      <div v-if="loading" class="loading">Loading projects...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
-      
-      <div v-else class="projects-grid">
-        <div v-for="project in projects" :key="project.id" class="project-card">
-          <router-link :to="`/projects/${project.id}`" class="card-link">
-            <div class="card-header">
-              <h3>{{ project.name }}</h3>
-              <span class="badge" :class="project.status">{{ project.status }}</span>
-            </div>
-            <p class="card-description">{{ project.description }}</p>
-            <div class="card-footer">
-              <span class="card-date">Created {{ formatDate(project.created_at) }}</span>
-            </div>
-          </router-link>
-        </div>
-      </div>
-
-      <div v-if="!loading && projects.length === 0" class="empty-state">
-        <h3>No projects yet</h3>
-        <p>Create your first project to get started</p>
-        <button @click="showCreateModal = true" class="btn btn-primary">
-          Create Project
-        </button>
+    <div v-if="loading" class="text-center py-12 text-gray-500">Loading projects...</div>
+    <div v-else-if="error" class="p-4 bg-red-50 text-red-600 rounded-md mb-4">{{ error }}</div>
+    
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-for="project in projects" :key="project.id" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        <router-link :to="`/projects/${project.id}`" class="block p-6 text-inherit no-underline">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold text-gray-900">{{ project.name }}</h3>
+            <span :class="['px-3 py-1 rounded-full text-xs font-semibold uppercase', project.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800']">{{ project.status }}</span>
+          </div>
+          <p class="text-gray-600 mb-4 leading-relaxed">{{ project.description }}</p>
+          <div class="text-gray-500 text-sm">
+            <span>Created {{ formatDate(project.created_at) }}</span>
+          </div>
+        </router-link>
       </div>
     </div>
 
+    <div v-if="!loading && projects.length === 0" class="text-center py-12">
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">No projects yet</h3>
+      <p class="text-gray-600 mb-4">Create your first project to get started</p>
+      <button @click="showCreateModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
+        Create Project
+      </button>
+    </div>
+
     <!-- Create Project Modal -->
-    <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
-      <div class="modal" @click.stop>
-        <h3>Create New Project</h3>
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="showCreateModal = false">
+      <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4" @click.stop>
+        <h3 class="text-xl font-semibold mb-6">Create New Project</h3>
         <form @submit.prevent="handleCreateProject">
-          <div class="form-group">
-            <label>Project Name</label>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
             <input 
               v-model="newProject.name" 
               type="text" 
               placeholder="Enter project name"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
-          <div class="form-group">
-            <label>Description</label>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
             <textarea 
               v-model="newProject.description" 
               placeholder="Enter project description"
               rows="4"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             ></textarea>
           </div>
-          <div class="modal-actions">
-            <button type="button" @click="showCreateModal = false" class="btn btn-secondary">
+          <div class="flex justify-end gap-3 mt-6">
+            <button type="button" @click="showCreateModal = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
               Cancel
             </button>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
               Create Project
             </button>
           </div>

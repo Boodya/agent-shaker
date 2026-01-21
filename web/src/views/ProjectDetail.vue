@@ -1,33 +1,45 @@
 <template>
   <div class="project-detail">
     <div class="container">
-      <div v-if="loading" class="loading">Loading project...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
+      <div v-if="loading" class="text-center py-12 text-gray-500">Loading project...</div>
+      <div v-else-if="error" class="p-4 bg-red-50 text-red-600 rounded-md mb-4">{{ error }}</div>
       
       <div v-else-if="project">
-        <div class="page-header">
+        <div class="flex justify-between items-start mb-8">
           <div>
-            <h2>{{ project.name }}</h2>
-            <p class="subtitle">{{ project.description }}</p>
+            <h2 class="text-3xl font-bold text-gray-900">{{ project.name }}</h2>
+            <p class="text-gray-600 mt-2">{{ project.description }}</p>
           </div>
-          <span class="badge" :class="project.status">{{ project.status }}</span>
+          <span :class=" [
+            'px-3 py-1 rounded-full text-sm font-semibold uppercase',
+            project.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          ]">{{ project.status }}</span>
         </div>
 
-        <div class="tabs">
+        <div class="flex gap-0 mb-6 border-b border-gray-200">
           <button 
-            :class="{ active: activeTab === 'agents' }"
+            :class=" [
+              'px-4 py-2 text-gray-600 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 transition-colors',
+              activeTab === 'agents' ? 'text-blue-600 border-blue-600' : ''
+            ]"
             @click="activeTab = 'agents'"
           >
             Agents ({{ agents.length }})
           </button>
           <button 
-            :class="{ active: activeTab === 'tasks' }"
+            :class=" [
+              'px-4 py-2 text-gray-600 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 transition-colors',
+              activeTab === 'tasks' ? 'text-blue-600 border-blue-600' : ''
+            ]"
             @click="activeTab = 'tasks'"
           >
             Tasks ({{ tasks.length }})
           </button>
           <button 
-            :class="{ active: activeTab === 'contexts' }"
+            :class=" [
+              'px-4 py-2 text-gray-600 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 transition-colors',
+              activeTab === 'contexts' ? 'text-blue-600 border-blue-600' : ''
+            ]"
             @click="activeTab = 'contexts'"
           >
             Contexts ({{ contexts.length }})
@@ -35,81 +47,96 @@
         </div>
 
         <!-- Agents Tab -->
-        <div v-if="activeTab === 'agents'" class="tab-content">
-          <div class="section-header">
-            <h3>Project Agents</h3>
-            <button @click="showAddAgentModal = true" class="btn btn-primary">
+        <div v-if="activeTab === 'agents'" class="py-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-semibold text-gray-900">Project Agents</h3>
+            <button @click="showAddAgentModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
               + Add Agent
             </button>
           </div>
 
-          <div class="agents-grid">
-            <div v-for="agent in agents" :key="agent.id" class="agent-card">
-              <div class="agent-header">
-                <h4>{{ agent.name }}</h4>
-                <span class="status-badge" :class="agent.status">{{ agent.status }}</span>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div v-for="agent in agents" :key="agent.id" class="bg-white p-6 rounded-lg shadow-sm">
+              <div class="flex justify-between items-start mb-4">
+                <h4 class="text-lg font-semibold text-gray-900">{{ agent.name }}</h4>
+                <span :class=" [
+                  'px-3 py-1 rounded-full text-sm font-semibold',
+                  agent.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                ]">{{ agent.status }}</span>
               </div>
-              <div class="agent-details">
-                <p><strong>Role:</strong> <span class="badge" :class="agent.role">{{ agent.role }}</span></p>
-                <p><strong>Team:</strong> {{ agent.team }}</p>
-                <p><strong>Last Seen:</strong> {{ formatDate(agent.last_seen) }}</p>
+              <div class="space-y-2">
+                <p class="text-gray-600"><strong class="font-medium text-gray-900">Role:</strong> <span :class=" [
+                  'inline-block px-2 py-1 rounded text-xs font-semibold',
+                  agent.role === 'frontend' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
+                ]">{{ agent.role }}</span></p>
+                <p class="text-gray-600"><strong class="font-medium text-gray-900">Team:</strong> {{ agent.team }}</p>
+                <p class="text-gray-600"><strong class="font-medium text-gray-900">Last Seen:</strong> {{ formatDate(agent.last_seen) }}</p>
               </div>
             </div>
           </div>
 
-          <div v-if="agents.length === 0" class="empty-state">
+          <div v-if="agents.length === 0" class="text-center py-12 text-gray-500">
             <p>No agents assigned to this project yet</p>
           </div>
         </div>
 
         <!-- Tasks Tab -->
-        <div v-if="activeTab === 'tasks'" class="tab-content">
-          <div class="section-header">
-            <h3>Project Tasks</h3>
-            <button @click="showAddTaskModal = true" class="btn btn-primary">
+        <div v-if="activeTab === 'tasks'" class="py-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-semibold text-gray-900">Project Tasks</h3>
+            <button @click="showAddTaskModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
               + Create Task
             </button>
           </div>
 
-          <div class="tasks-list">
-            <div v-for="task in tasks" :key="task.id" class="task-card">
-              <div class="task-header">
-                <h4>{{ task.title }}</h4>
-                <div class="task-badges">
-                  <span class="priority" :class="task.priority">{{ task.priority }}</span>
-                  <span class="status" :class="task.status">{{ task.status }}</span>
+          <div class="space-y-4">
+            <div v-for="task in tasks" :key="task.id" class="bg-white p-6 rounded-lg shadow-sm">
+              <div class="flex justify-between items-start mb-3">
+                <h4 class="text-lg font-semibold text-gray-900">{{ task.title }}</h4>
+                <div class="flex gap-2">
+                  <span :class=" [
+                    'px-2 py-1 rounded text-xs font-semibold',
+                    task.priority === 'high' ? 'bg-red-100 text-red-800' : 
+                    task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
+                  ]">{{ task.priority }}</span>
+                  <span :class=" [
+                    'px-2 py-1 rounded text-xs font-semibold',
+                    task.status === 'done' ? 'bg-green-100 text-green-800' : 
+                    task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
+                    task.status === 'pending' ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800'
+                  ]">{{ task.status }}</span>
                 </div>
               </div>
-              <p>{{ task.description }}</p>
-              <div class="task-footer">
+              <p class="text-gray-600 mb-4">{{ task.description }}</p>
+              <div class="flex justify-between text-sm text-gray-500">
                 <span>Agent: {{ getAgentName(task.agent_id) }}</span>
                 <span>Created {{ formatDate(task.created_at) }}</span>
               </div>
             </div>
           </div>
 
-          <div v-if="tasks.length === 0" class="empty-state">
+          <div v-if="tasks.length === 0" class="text-center py-12 text-gray-500">
             <p>No tasks in this project yet</p>
           </div>
         </div>
 
         <!-- Contexts Tab -->
-        <div v-if="activeTab === 'contexts'" class="tab-content">
-          <div class="section-header">
-            <h3>Project Documentation / Context</h3>
-            <button @click="showAddContextModal = true" class="btn btn-primary">
+        <div v-if="activeTab === 'contexts'" class="py-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-semibold text-gray-900">Project Documentation / Context</h3>
+            <button @click="showAddContextModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
               + Add Context
             </button>
           </div>
 
-          <div class="search-filter">
+          <div class="flex gap-4 mb-6">
             <input 
               v-model="contextSearch" 
               type="text" 
               placeholder="Search contexts..." 
-              class="search-input"
+              class="px-4 py-2 border border-gray-300 rounded-md flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <select v-model="contextTagFilter" class="filter-select">
+            <select v-model="contextTagFilter" class="px-4 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">All Tags</option>
               <option v-for="tag in uniqueTags" :key="tag" :value="tag">
                 {{ tag }}
@@ -117,26 +144,26 @@
             </select>
           </div>
 
-          <div class="contexts-grid">
-            <div v-for="context in filteredContexts" :key="context.id" class="context-card">
-              <div class="context-header">
-                <h4>{{ context.title }}</h4>
-                <div class="context-actions">
-                  <button @click="viewContext(context)" class="btn-icon" title="View">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div v-for="context in filteredContexts" :key="context.id" class="bg-white p-6 rounded-lg shadow-sm">
+              <div class="flex justify-between items-start mb-4">
+                <h4 class="text-lg font-semibold text-gray-900">{{ context.title }}</h4>
+                <div class="flex gap-2">
+                  <button @click="viewContext(context)" class="p-2 text-gray-400 hover:text-gray-600 transition-colors" title="View">
                     👁️
                   </button>
-                  <button @click="editContext(context)" class="btn-icon" title="Edit">
+                  <button @click="editContext(context)" class="p-2 text-gray-400 hover:text-gray-600 transition-colors" title="Edit">
                     ✏️
                   </button>
-                  <button @click="confirmDeleteContext(context)" class="btn-icon btn-danger" title="Delete">
+                  <button @click="confirmDeleteContext(context)" class="p-2 text-red-500 hover:text-red-700 transition-colors" title="Delete">
                     🗑️
                   </button>
                 </div>
               </div>
-              <div class="context-tags">
-                <span v-for="tag in context.tags" :key="tag" class="tag">{{ tag }}</span>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span v-for="tag in context.tags" :key="tag" class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">{{ tag }}</span>
               </div>
-              <div class="context-meta">
+              <div class="flex justify-between text-sm text-gray-500">
                 <span>Agent: {{ getAgentName(context.agent_id) }}</span>
                 <span v-if="context.task_id">Task: {{ getTaskTitle(context.task_id) }}</span>
                 <span>{{ formatDate(context.created_at) }}</span>
@@ -144,7 +171,7 @@
             </div>
           </div>
 
-          <div v-if="filteredContexts.length === 0" class="empty-state">
+          <div v-if="filteredContexts.length === 0" class="text-center py-12 text-gray-500">
             <p>{{ contexts.length === 0 ? 'No contexts in this project yet' : 'No contexts match your search' }}</p>
           </div>
         </div>
@@ -152,125 +179,127 @@
     </div>
 
     <!-- Add Agent Modal -->
-    <div v-if="showAddAgentModal" class="modal-overlay" @click="showAddAgentModal = false">
-      <div class="modal" @click.stop>
-        <h3>Add Agent to Project</h3>
+    <div v-if="showAddAgentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="showAddAgentModal = false">
+      <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4" @click.stop>
+        <h3 class="text-xl font-semibold mb-6">Add Agent to Project</h3>
         <form @submit.prevent="handleAddAgent">
-          <div class="form-group">
-            <label>Agent Name</label>
-            <input v-model="newAgent.name" type="text" required />
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Agent Name</label>
+            <input v-model="newAgent.name" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
           </div>
-          <div class="form-group">
-            <label>Role</label>
-            <select v-model="newAgent.role" required>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+            <select v-model="newAgent.role" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
               <option value="frontend">Frontend</option>
               <option value="backend">Backend</option>
             </select>
           </div>
-          <div class="form-group">
-            <label>Team</label>
-            <input v-model="newAgent.team" type="text" />
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Team</label>
+            <input v-model="newAgent.team" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
-          <div class="modal-actions">
-            <button type="button" @click="showAddAgentModal = false" class="btn btn-secondary">
+          <div class="flex justify-end gap-3 mt-6">
+            <button type="button" @click="showAddAgentModal = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
               Cancel
             </button>
-            <button type="submit" class="btn btn-primary">Add Agent</button>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">Add Agent</button>
           </div>
         </form>
       </div>
     </div>
 
     <!-- Add Task Modal -->
-    <div v-if="showAddTaskModal" class="modal-overlay" @click="showAddTaskModal = false">
-      <div class="modal" @click.stop>
-        <h3>Create New Task</h3>
+    <div v-if="showAddTaskModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="showAddTaskModal = false">
+      <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4" @click.stop>
+        <h3 class="text-xl font-semibold mb-6">Create New Task</h3>
         <form @submit.prevent="handleAddTask">
-          <div class="form-group">
-            <label>Task Title</label>
-            <input v-model="newTask.title" type="text" required />
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Task Title</label>
+            <input v-model="newTask.title" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
           </div>
-          <div class="form-group">
-            <label>Description</label>
-            <textarea v-model="newTask.description" rows="4"></textarea>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea v-model="newTask.description" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
           </div>
-          <div class="form-group">
-            <label>Assign to Agent</label>
-            <select v-model="newTask.agent_id" required>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Assign to Agent</label>
+            <select v-model="newTask.agent_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
               <option value="">Select an agent</option>
               <option v-for="agent in agents" :key="agent.id" :value="agent.id">
                 {{ agent.name }}
               </option>
             </select>
           </div>
-          <div class="form-group">
-            <label>Priority</label>
-            <select v-model="newTask.priority">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+            <select v-model="newTask.priority" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
           </div>
-          <div class="modal-actions">
-            <button type="button" @click="showAddTaskModal = false" class="btn btn-secondary">
+          <div class="flex justify-end gap-3 mt-6">
+            <button type="button" @click="showAddTaskModal = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
               Cancel
             </button>
-            <button type="submit" class="btn btn-primary">Create Task</button>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">Create Task</button>
           </div>
         </form>
       </div>
     </div>
 
     <!-- Add Context Modal -->
-    <div v-if="showAddContextModal" class="modal-overlay" @click="closeContextModal">
-      <div class="modal modal-large" @click.stop>
-        <h3>{{ editingContext ? 'Edit Context' : 'Add Context / Documentation' }}</h3>
+    <div v-if="showAddContextModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="closeContextModal">
+      <div class="bg-white p-6 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
+        <h3 class="text-xl font-semibold mb-6">{{ editingContext ? 'Edit Context' : 'Add Context / Documentation' }}</h3>
         <form @submit.prevent="handleSaveContext">
-          <div class="form-group">
-            <label>Title</label>
-            <input v-model="contextForm.title" type="text" required />
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+            <input v-model="contextForm.title" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
           </div>
-          <div class="form-group">
-            <label>Agent</label>
-            <select v-model="contextForm.agent_id" required>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Agent</label>
+            <select v-model="contextForm.agent_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
               <option value="">Select an agent</option>
               <option v-for="agent in agents" :key="agent.id" :value="agent.id">
                 {{ agent.name }}
               </option>
             </select>
           </div>
-          <div class="form-group">
-            <label>Related Task (Optional)</label>
-            <select v-model="contextForm.task_id">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Related Task (Optional)</label>
+            <select v-model="contextForm.task_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">None</option>
               <option v-for="task in tasks" :key="task.id" :value="task.id">
                 {{ task.title }}
               </option>
             </select>
           </div>
-          <div class="form-group">
-            <label>Content (Markdown)</label>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Content (Markdown)</label>
             <textarea 
               v-model="contextForm.content" 
               rows="12" 
               placeholder="Write your documentation in Markdown format..."
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             ></textarea>
-            <small class="help-text">Supports Markdown: **bold**, *italic*, [link](url), etc.</small>
+            <small class="text-gray-500 text-sm">Supports Markdown: **bold**, *italic*, [link](url), etc.</small>
           </div>
-          <div class="form-group">
-            <label>Tags (comma-separated)</label>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tags (comma-separated)</label>
             <input 
               v-model="contextForm.tagsString" 
               type="text" 
               placeholder="api, documentation, backend"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <div class="modal-actions">
-            <button type="button" @click="closeContextModal" class="btn btn-secondary">
+          <div class="flex justify-end gap-3 mt-6">
+            <button type="button" @click="closeContextModal" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
               Cancel
             </button>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
               {{ editingContext ? 'Update' : 'Create' }} Context
             </button>
           </div>
@@ -279,38 +308,38 @@
     </div>
 
     <!-- View Context Modal -->
-    <div v-if="showViewContextModal" class="modal-overlay" @click="showViewContextModal = false">
-      <div class="modal modal-large" @click.stop>
-        <div class="modal-header-flex">
-          <h3>{{ viewingContext?.title }}</h3>
-          <button @click="showViewContextModal = false" class="btn-close">×</button>
+    <div v-if="showViewContextModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="showViewContextModal = false">
+      <div class="bg-white p-6 rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
+        <div class="flex justify-between items-start mb-6">
+          <h3 class="text-xl font-semibold text-gray-900">{{ viewingContext?.title }}</h3>
+          <button @click="showViewContextModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
         </div>
-        <div class="context-view">
-          <div class="context-meta-bar">
-            <div class="context-tags">
-              <span v-for="tag in viewingContext?.tags" :key="tag" class="tag">{{ tag }}</span>
+        <div>
+          <div class="flex justify-between items-center mb-6">
+            <div class="flex flex-wrap gap-2">
+              <span v-for="tag in viewingContext?.tags" :key="tag" class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">{{ tag }}</span>
             </div>
-            <div class="context-info">
+            <div class="flex gap-4 text-sm text-gray-500">
               <span>Agent: {{ getAgentName(viewingContext?.agent_id) }}</span>
               <span v-if="viewingContext?.task_id">Task: {{ getTaskTitle(viewingContext?.task_id) }}</span>
               <span>{{ formatDate(viewingContext?.created_at) }}</span>
             </div>
           </div>
-          <div class="markdown-content" v-html="renderMarkdown(viewingContext?.content)"></div>
+          <div class="prose max-w-none" v-html="renderMarkdown(viewingContext?.content)"></div>
         </div>
       </div>
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteConfirm" class="modal-overlay" @click="showDeleteConfirm = false">
-      <div class="modal modal-small" @click.stop>
-        <h3>⚠️ Confirm Delete</h3>
-        <p>Are you sure you want to delete the context "{{ deletingContext?.title }}"?</p>
-        <div class="modal-actions">
-          <button @click="showDeleteConfirm = false" class="btn btn-secondary">
+    <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="showDeleteConfirm = false">
+      <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4" @click.stop>
+        <h3 class="text-xl font-semibold mb-4 text-red-600">⚠️ Confirm Delete</h3>
+        <p class="text-gray-600 mb-6">Are you sure you want to delete the context "{{ deletingContext?.title }}"?</p>
+        <div class="flex justify-end gap-3">
+          <button @click="showDeleteConfirm = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
             Cancel
           </button>
-          <button @click="handleDeleteContext" class="btn btn-danger">
+          <button @click="handleDeleteContext" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
             Delete
           </button>
         </div>
@@ -783,7 +812,7 @@ export default {
 
 .agent-details p {
   margin: 0.5rem 0;
-  color: #7f8c8d;
+  color: #7f8c8c;
 }
 
 .badge.frontend { background: #e3f2fd; color: #1976d2; }
@@ -974,117 +1003,82 @@ export default {
   display: block;
   margin-top: 0.5rem;
   color: #7f8c8d;
-  font-size: 0.85rem;
 }
 
-.modal-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
+.prose {
+  max-width: 100%;
+  line-height: 1.6;
 }
 
-.context-view {
-  margin-top: 1rem;
-}
-
-.context-meta-bar {
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 6px;
-  margin-bottom: 1.5rem;
-}
-
-.context-info {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 0.75rem;
-  color: #7f8c8d;
-  font-size: 0.85rem;
-}
-
-.markdown-content {
-  line-height: 1.7;
-  color: #2c3e50;
-}
-
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.prose h1, .prose h2, .prose h3, .prose h4 {
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
   color: #2c3e50;
 }
 
-.markdown-content h1 { font-size: 2rem; }
-.markdown-content h2 { font-size: 1.5rem; }
-.markdown-content h3 { font-size: 1.25rem; }
+.prose h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+}
 
-.markdown-content p {
+.prose h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.prose h3 {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.prose h4 {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.prose p {
   margin-bottom: 1rem;
+  color: #34495e;
 }
 
-.markdown-content ul,
-.markdown-content ol {
-  margin-bottom: 1rem;
-  padding-left: 2rem;
-}
-
-.markdown-content code {
-  background: #f8f9fa;
-  padding: 0.2rem 0.4rem;
-  border-radius: 3px;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9em;
-}
-
-.markdown-content pre {
-  background: #2c3e50;
-  color: #ecf0f1;
-  padding: 1rem;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin-bottom: 1rem;
-}
-
-.markdown-content pre code {
-  background: none;
-  padding: 0;
-  color: inherit;
-}
-
-.markdown-content a {
+.prose a {
   color: #3498db;
-  text-decoration: none;
-}
-
-.markdown-content a:hover {
   text-decoration: underline;
 }
 
-.markdown-content blockquote {
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.prose pre {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.prose code {
+  font-family: 'Courier New', monospace;
+  background: #eef2f3;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+.prose blockquote {
   border-left: 4px solid #3498db;
   padding-left: 1rem;
-  margin: 1rem 0;
+  margin: 0;
   color: #7f8c8d;
 }
 
-.markdown-content table {
-  width: 100%;
-  border-collapse: collapse;
+.prose ul, .prose ol {
+  margin-left: 1.5rem;
   margin-bottom: 1rem;
 }
 
-.markdown-content th,
-.markdown-content td {
-  border: 1px solid #dee2e6;
-  padding: 0.75rem;
-  text-align: left;
-}
-
-.markdown-content th {
-  background: #f8f9fa;
-  font-weight: 600;
+.prose li {
+  margin-bottom: 0.5rem;
 }
 </style>
