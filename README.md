@@ -21,6 +21,7 @@ MCP Task Tracker is a real-time task coordination system designed for AI agents 
 - 🔄 **Real-time Updates** - WebSocket-based live notifications
 - 🎯 **Cross-team Communication** - Backend ↔ Frontend task handoff
 - 🔍 **Advanced Filtering** - Filter by status, priority, tags, agents
+- 🎨 **Modern UI** - Vue.js 3 web interface with responsive design
 
 ## Architecture
 
@@ -29,7 +30,7 @@ MCP Task Tracker is a real-time task coordination system designed for AI agents 
 1. **Go REST API Server** - Core backend with HTTP handlers
 2. **PostgreSQL Database** - Persistent storage for all entities
 3. **WebSocket Hub** - Real-time notification system
-4. **Web UI** - Management dashboard (HTML/JS)
+4. **Vue.js Web UI** - Modern SPA dashboard with state management
 
 ### Data Model
 
@@ -40,14 +41,14 @@ MCP Task Tracker is a real-time task coordination system designed for AI agents 
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
+### Option 1: Docker Compose (Recommended - Static UI)
 
 ```bash
 # Clone the repository
 git clone https://github.com/techbuzzz/agent-shaker.git
 cd agent-shaker
 
-# Start all services
+# Start all services (Go backend + PostgreSQL)
 docker-compose up -d
 
 # Check health
@@ -58,6 +59,40 @@ The application will be available at:
 - Web UI: http://localhost:8080
 - API: http://localhost:8080/api
 - WebSocket: ws://localhost:8080/ws
+
+### Option 2: Vue.js Development (Recommended for UI Development)
+
+```powershell
+# 1. Start the backend with Docker
+docker-compose up -d
+
+# 2. Install and run Vue.js frontend
+.\setup-vue.ps1
+
+# Or manually:
+cd web
+npm install
+npm run dev
+```
+
+The Vue.js app will be available at:
+- Frontend: http://localhost:3000 (with HMR)
+- Backend API: http://localhost:8080/api
+- WebSocket: ws://localhost:8080/ws
+
+### Option 3: Production Build with Vue.js
+
+```bash
+# Build Vue.js frontend
+cd web
+npm install
+npm run build
+cd ..
+
+# Build and run with Docker (includes Vue.js build)
+docker build -f Dockerfile.vue -t mcp-tracker:vue .
+docker-compose -f docker-compose.vue.yml up -d
+```
 
 ### Local Development
 
