@@ -283,90 +283,220 @@ async function createTask(event) {
 
 // Contexts
 async function loadContexts(projectId) {
+    const loadingSpinner = document.getElementById('contextsLoading');
+    const contextsList = document.getElementById('contextsList');
+
+    loadingSpinner.style.display = 'block';
+    contextsList.style.opacity = '0.5';
+
     try {
         const response = await fetch(`${API_BASE}/contexts?project_id=${projectId}`);
         contexts = await response.json() || [];
         renderContexts();
     } catch (error) {
         console.error('Failed to load contexts:', error);
+        showNotification('Failed to load documentation', 'error');
+        contextsList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">❌</div>
+                <h3>Failed to Load Documentation</h3>
+                <p>There was an error loading the documentation. Please try again.</p>
+                <button class="btn btn-primary" onclick="loadContexts('${projectId}')">
+                    <span class="btn-icon">🔄</span>
+                    Retry
+                </button>
+            </div>
+        `;
+    } finally {
+        loadingSpinner.style.display = 'none';
+        contextsList.style.opacity = '1';
     }
 }
 
 function renderContexts() {
     const container = document.getElementById('contextsList');
     if (!contexts || contexts.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📚</div><p>No documentation yet. Add your first documentation!</p></div>';
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📚</div>
+                <h3>No Documentation Yet</h3>
+                <p>Start building your knowledge base by adding your first documentation entry.</p>
+                <button class="btn btn-primary" onclick="openContextModal()">
+                    <span class="btn-icon">➕</span>
+                    Add Documentation
+                </button>
+            </div>
+        `;
         return;
     }
-    
+
+    // Update tag filter options
+    updateTagFilter();
+
     container.innerHTML = contexts.map(c => `
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">${c.title}</div>
-                <div class="card-meta">${new Date(c.created_at).toLocaleDateString()}</div>
-                <div class="card-actions">
-                    <button class="btn btn-sm btn-secondary" onclick="editContext('${c.id}')">Edit</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteContext('${c.id}')">Delete</button>
+        <div class="card" data-context-id="${c.id}">
+            <div class="card-content">
+                <div class="card-header">
+                    <div class="card-title">${escapeHtml(c.title)}</div>
+                    <div class="card-meta-extended">
+                        <span class="card-author">By ${getAgentName(c.agent_id)}</span>
+                        <span class="card-updated">Updated ${formatDate(c.updated_at)}</span>
+                    </div>
                 </div>
-            </div>
-            <div class="card-body">
-                <p>${c.content.substring(0, 200)}${c.content.length > 200 ? '...' : ''}</p>
-            </div>
-            <div class="card-footer">
-                ${c.tags ? c.tags.map(tag => `<span class="badge">${tag}</span>`).join(' ') : ''}
+                <div class="card-body card-body-expanded">
+                    <p>${escapeHtml(c.content.substring(0, 300))}${c.content.length > 300 ? '...' : ''}</p>
+                </div>
+                <div class="card-tags">
+                    ${c.tags ? c.tags.map(tag => `<span class="badge">${escapeHtml(tag)}</span>`).join(' ') : '<span class="badge" style="background: #e9ecef; color: #6c757d;">No tags</span>'}
+                </div>
+                <div class="card-actions-extended">
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="viewContext('${c.id}')" title="View full documentation">
+                            <span class="btn-icon">👁️</span>
+                            View
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="editContext('${c.id}')" title="Edit documentation">
+                            <span class="btn-icon">✏️</span>
+                            Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDeleteContext('${c.id}', '${escapeHtml(c.title)}')" title="Delete documentation">
+                            <span class="btn-icon">🗑️</span>
+                            Delete
+                        </button>
+                    </div>
+                    ${c.task_id ? `<div class="task-link">📋 Linked to task</div>` : ''}
+                </div>
             </div>
         </div>
     `).join('');
 }
 
-async function createContext(event) {
-    event.preventDefault();
-    
-    const project_id = document.getElementById('contextProjectId').value;
-    const agent_id = document.getElementById('contextAgentId').value;
-    const task_id = document.getElementById('contextTaskId').value || null;
-    const title = document.getElementById('contextTitle').value;
-    const content = document.getElementById('contextContent').value;
-    const tagsStr = document.getElementById('contextTags').value;
-    const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()) : [];
-    
-    try {
-        await fetch(`${API_BASE}/contexts`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                project_id, 
-                agent_id, 
-                task_id, 
-                title, 
-                content, 
-                tags 
-            })
-        });
-        
-        loadContexts(project_id);
-        closeModal('contextModal');
-        showNotification('Documentation added successfully');
-    } catch (error) {
-        console.error('Failed to create context:', error);
-        showNotification('Failed to add documentation', 'error');
+// Helper functions
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function getAgentName(agentId) {
+    const agent = agents.find(a => a.id === agentId);
+    return agent ? agent.name : 'Unknown Agent';
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+        return 'today';
+    } else if (diffDays === 2) {
+        return 'yesterday';
+    } else if (diffDays < 7) {
+        return `${diffDays - 1} days ago`;
+    } else {
+        return date.toLocaleDateString();
     }
+}
+
+function updateTagFilter() {
+    const tagFilter = document.getElementById('tagFilter');
+    const allTags = new Set();
+
+    contexts.forEach(context => {
+        if (context.tags) {
+            context.tags.forEach(tag => allTags.add(tag));
+        }
+    });
+
+    const currentValue = tagFilter.value;
+    tagFilter.innerHTML = '<option value="">All Tags</option>';
+
+    Array.from(allTags).sort().forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag;
+        option.textContent = tag;
+        if (tag === currentValue) {
+            option.selected = true;
+        }
+        tagFilter.appendChild(option);
+    });
+}
+
+function filterContexts() {
+    const searchTerm = document.getElementById('contextSearch').value.toLowerCase();
+    const tagFilter = document.getElementById('tagFilter').value;
+    const cards = document.querySelectorAll('#contextsList .card');
+
+    cards.forEach(card => {
+        const title = card.querySelector('.card-title').textContent.toLowerCase();
+        const content = card.querySelector('.card-body').textContent.toLowerCase();
+        const tags = Array.from(card.querySelectorAll('.badge')).map(badge => badge.textContent.toLowerCase());
+
+        const matchesSearch = title.includes(searchTerm) || content.includes(searchTerm);
+        const matchesTag = !tagFilter || tags.includes(tagFilter.toLowerCase());
+
+        card.style.display = matchesSearch && matchesTag ? 'block' : 'none';
+    });
+}
+
+function viewContext(id) {
+    const context = contexts.find(c => c.id === id);
+    if (!context) return;
+
+    // Create a view modal with full content
+    const viewModal = document.createElement('div');
+    viewModal.className = 'modal active';
+    viewModal.id = 'viewContextModal';
+    viewModal.innerHTML = `
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('viewContextModal')">&times;</span>
+                <h2 class="modal-title">${escapeHtml(context.title)}</h2>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div style="margin-bottom: 15px;">
+                    <strong>Author:</strong> ${getAgentName(context.agent_id)} |
+                    <strong>Updated:</strong> ${new Date(context.updated_at).toLocaleString()}
+                </div>
+                <div style="line-height: 1.6; white-space: pre-wrap;">${escapeHtml(context.content)}</div>
+                ${context.tags ? `
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e9ecef;">
+                        <strong>Tags:</strong> ${context.tags.map(tag => `<span class="badge">${escapeHtml(tag)}</span>`).join(' ')}
+                    </div>
+                ` : ''}
+            </div>
+            <div style="padding: 20px; border-top: 1px solid #e9ecef; display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="editContext('${context.id}'); closeModal('viewContextModal');">
+                    <span class="btn-icon">✏️</span>
+                    Edit
+                </button>
+                <button class="btn btn-danger" onclick="confirmDeleteContext('${context.id}', '${escapeHtml(context.title)}'); closeModal('viewContextModal');">
+                    <span class="btn-icon">🗑️</span>
+                    Delete
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(viewModal);
 }
 
 async function editContext(id) {
     try {
         const response = await fetch(`${API_BASE}/contexts/${id}`);
         const context = await response.json();
-        
+
         // Populate the modal with existing data
         document.getElementById('contextProjectId').value = context.project_id;
         document.getElementById('contextTitle').value = context.title;
         document.getElementById('contextContent').value = context.content;
         document.getElementById('contextTags').value = context.tags ? context.tags.join(', ') : '';
-        
+
         // Load agents and tasks for the project
         await loadAgentsAndTasksForContext();
-        
+
         // Set agent and task if they exist
         if (context.agent_id) {
             document.getElementById('contextAgentId').value = context.agent_id;
@@ -374,12 +504,19 @@ async function editContext(id) {
         if (context.task_id) {
             document.getElementById('contextTaskId').value = context.task_id;
         }
-        
+
         // Change modal title and button
         document.querySelector('#contextModal .modal-title').textContent = 'Edit Documentation';
-        document.querySelector('#contextModal .btn-primary').textContent = 'Update Documentation';
-        document.querySelector('#contextModal .btn-primary').onclick = () => updateContext(id);
+        const submitBtn = document.querySelector('#contextModal .btn-primary');
+        submitBtn.textContent = 'Update Documentation';
         
+        // Change form submit handler
+        const form = document.querySelector('#contextModal form');
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            updateContext(id);
+        };
+
         document.getElementById('contextModal').classList.add('active');
     } catch (error) {
         console.error('Failed to load context for editing:', error);
@@ -387,50 +524,187 @@ async function editContext(id) {
     }
 }
 
-async function updateContext(id) {
-    const task_id = document.getElementById('contextTaskId').value || null;
-    const title = document.getElementById('contextTitle').value;
-    const content = document.getElementById('contextContent').value;
-    const tagsStr = document.getElementById('contextTags').value;
-    const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()) : [];
-    
+async function createContext(event) {
+    event.preventDefault();
+
+    // Clear previous validation
+    clearFormValidation();
+
+    const formData = getContextFormData();
+    if (!validateContextForm(formData)) return;
+
+    const submitBtn = event.target.querySelector('.btn-primary');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="btn-icon">⏳</span> Creating...';
+
     try {
-        await fetch(`${API_BASE}/contexts/${id}`, {
+        const response = await fetch(`${API_BASE}/contexts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        loadContexts(formData.project_id);
+        closeModal('contextModal');
+        showNotification('Documentation added successfully');
+    } catch (error) {
+        console.error('Failed to create context:', error);
+        showFormValidation('contextTitle', 'Failed to create documentation. Please try again.', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+}
+
+async function updateContext(id) {
+    // Clear previous validation
+    clearFormValidation();
+
+    const formData = getContextFormData();
+    if (!validateContextForm(formData)) return;
+
+    const submitBtn = document.querySelector('#contextModal .btn-primary');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="btn-icon">⏳</span> Updating...';
+
+    try {
+        const response = await fetch(`${API_BASE}/contexts/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                task_id, 
-                title, 
-                content, 
-                tags 
+            body: JSON.stringify({
+                task_id: formData.task_id,
+                title: formData.title,
+                content: formData.content,
+                tags: formData.tags
             })
         });
-        
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         loadContexts(currentProject);
         closeModal('contextModal');
         showNotification('Documentation updated successfully');
     } catch (error) {
         console.error('Failed to update context:', error);
-        showNotification('Failed to update documentation', 'error');
+        showNotification('Failed to update documentation. Please try again.', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
     }
 }
 
 async function deleteContext(id) {
-    if (!confirm('Are you sure you want to delete this documentation?')) {
-        return;
-    }
-    
     try {
+        const loadingBtn = document.querySelector(`[onclick*="confirmDeleteContext('${id}"]`);
+        if (loadingBtn) {
+            loadingBtn.disabled = true;
+            loadingBtn.innerHTML = '<span class="btn-icon">⏳</span> Deleting...';
+        }
+
         await fetch(`${API_BASE}/contexts/${id}`, {
             method: 'DELETE'
         });
-        
+
         loadContexts(currentProject);
         showNotification('Documentation deleted successfully');
+        closeModal('confirmationModal');
     } catch (error) {
         console.error('Failed to delete context:', error);
         showNotification('Failed to delete documentation', 'error');
+    } finally {
+        // Re-enable all delete buttons
+        document.querySelectorAll('.btn-danger').forEach(btn => {
+            if (btn.onclick && btn.onclick.toString().includes('confirmDeleteContext')) {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">🗑️</span> Delete';
+            }
+        });
     }
+}
+
+function confirmDeleteContext(id, title) {
+    const confirmationMessage = document.getElementById('confirmationMessage');
+    const confirmBtn = document.getElementById('confirmActionBtn');
+
+    confirmationMessage.innerHTML = `
+        Are you sure you want to delete the documentation "<strong>${title}</strong>"?<br>
+        <small style="color: #6c757d;">This action cannot be undone.</small>
+    `;
+
+    confirmBtn.onclick = () => deleteContext(id);
+    document.getElementById('confirmationModal').classList.add('active');
+}
+
+function getContextFormData() {
+    return {
+        project_id: document.getElementById('contextProjectId').value,
+        agent_id: document.getElementById('contextAgentId').value,
+        task_id: document.getElementById('contextTaskId').value || null,
+        title: document.getElementById('contextTitle').value.trim(),
+        content: document.getElementById('contextContent').value.trim(),
+        tags: document.getElementById('contextTags').value ?
+            document.getElementById('contextTags').value.split(',').map(t => t.trim()).filter(t => t) : []
+    };
+}
+
+function validateContextForm(data) {
+    let isValid = true;
+
+    if (!data.title) {
+        showFormValidation('contextTitle', 'Title is required', 'error');
+        isValid = false;
+    } else if (data.title.length > 255) {
+        showFormValidation('contextTitle', 'Title must be less than 255 characters', 'error');
+        isValid = false;
+    }
+
+    if (!data.content) {
+        showFormValidation('contextContent', 'Content is required', 'error');
+        isValid = false;
+    }
+
+    if (!data.project_id) {
+        showFormValidation('contextProjectId', 'Project selection is required', 'error');
+        isValid = false;
+    }
+
+    if (!data.agent_id) {
+        showFormValidation('contextAgentId', 'Agent selection is required', 'error');
+        isValid = false;
+    }
+
+    return isValid;
+}
+
+function showFormValidation(fieldId, message, type) {
+    const field = document.getElementById(fieldId);
+    const existingValidation = field.parentNode.querySelector('.form-validation');
+
+    if (existingValidation) {
+        existingValidation.remove();
+    }
+
+    const validationDiv = document.createElement('div');
+    validationDiv.className = `form-validation ${type}`;
+    validationDiv.textContent = message;
+
+    field.parentNode.appendChild(validationDiv);
+    field.style.borderColor = type === 'error' ? '#dc3545' : '#28a745';
+}
+
+function clearFormValidation() {
+    document.querySelectorAll('.form-validation').forEach(el => el.remove());
+    document.querySelectorAll('#contextModal input, #contextModal textarea, #contextModal select').forEach(el => {
+        el.style.borderColor = '#ced4da';
+    });
 }
 
 // Modal management
@@ -462,24 +736,36 @@ function openContextModal() {
         showNotification('Please select a project first', 'error');
         return;
     }
-    
+
     // Reset modal to create mode
     document.querySelector('#contextModal .modal-title').textContent = 'Add Documentation';
-    document.querySelector('#contextModal .btn-primary').textContent = 'Add Documentation';
-    document.querySelector('#contextModal .btn-primary').onclick = createContext;
+    const submitBtn = document.querySelector('#contextModal .btn-primary');
+    submitBtn.textContent = 'Add Documentation';
     
-    // Clear form fields
+    // Reset form submit handler
+    const form = document.querySelector('#contextModal form');
+    form.onsubmit = createContext;
+
+    // Clear form fields and validation
+    clearFormValidation();
     document.getElementById('contextTitle').value = '';
     document.getElementById('contextContent').value = '';
     document.getElementById('contextTags').value = '';
-    
+
     populateProjectSelect('contextProjectId');
     loadAgentsAndTasksForContext();
     document.getElementById('contextModal').classList.add('active');
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+        // Remove view modal from DOM if it exists
+        if (modalId === 'viewContextModal') {
+            setTimeout(() => modal.remove(), 300);
+        }
+    }
 }
 
 // Helper functions
@@ -543,9 +829,9 @@ async function loadAgentsAndTasksForContext() {
 function showNotification(message, type = 'success') {
     const notification = document.getElementById('notification');
     notification.textContent = message;
-    notification.className = 'notification show';
-    
+    notification.className = `notification ${type} show`;
+
     setTimeout(() => {
         notification.classList.remove('show');
-    }, 3000);
+    }, 4000);
 }
