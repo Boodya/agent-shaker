@@ -1,8 +1,14 @@
-# 🚀 MCP Task Tracker
+<div align="center">
+
+![Agent Shaker Logo](./images/logo.png)
+
+# 🚀 Agent Shaker - MCP Task Tracker
 
 > AI Agent Task Coordination System - Backend API & MCP Server
 
 MCP Task Tracker is a real-time task coordination backend system designed for AI agents (like GitHub Copilot) working in microservices architectures. It provides a REST API and MCP server for task coordination, agent management, and documentation sharing.
+
+</div>
 
 ## 📚 Documentation
 
@@ -41,6 +47,23 @@ MCP Task Tracker is a real-time task coordination backend system designed for AI
 - **Context** - Documentation with markdown and tags
 
 ## Quick Start
+
+### Agent Setup with PowerShell Script
+
+For Windows users, use the provided setup scripts in the `scripts/` folder:
+
+```powershell
+# Start services
+docker-compose up -d
+
+# Run interactive agent setup
+.\scripts\setup-agent.ps1 -Interactive
+
+# Or with parameters
+.\scripts\setup-agent.ps1 -ProjectName "InvoiceAI" -AgentName "InvoiceAI-Frontend" -Role "frontend"
+```
+
+See [Quick Start - Agent Setup](./docs/QUICKSTART_AGENT.md) for more details.
 
 ### Docker Compose (Recommended)
 
@@ -379,6 +402,14 @@ Environment variables:
 
 - `DATABASE_URL` - PostgreSQL connection string (default: `postgres://mcp:secret@localhost:5432/mcp_tracker?sslmode=disable`)
 - `PORT` - Server port (default: `8080`)
+
+## Scripts
+
+The `scripts/` folder contains helpful PowerShell setup scripts for Windows users:
+
+- **`setup-agent.ps1`** - Interactive agent registration and project setup
+- **`setup-mcp-bridge.ps1`** - MCP bridge setup and dependency installation
+- **`setup-vue.ps1`** - Vue.js frontend setup
 
 ## License
 
