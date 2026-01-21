@@ -148,3 +148,115 @@ func (h *ContextHandler) GetContext(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ctx)
 }
+
+func (h *ContextHandler) UpdateContext(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid context ID format", http.StatusBadRequest)
+		return
+	}
+
+	var req models.UpdateContextRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request
+	if err := validator.ValidateUpdateContextRequest(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Check if context exists and get current data
+	var currentCtx models.Context
+	err = h.db.QueryRow(`
+		SELECT id, project_id, agent_id, task_id, title, content, tags, created_at, updated_at
+		FROM contexts
+		WHERE id = $1
+	`, id).Scan(&currentCtx.ID, &currentCtx.ProjectID, &currentCtx.AgentID, &currentCtx.TaskID, &currentCtx.Title, &currentCtx.Content, &currentCtx.Tags, &currentCtx.CreatedAt, &currentCtx.UpdatedAt)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Context not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, "Failed to retrieve context", http.StatusInternalServerError)
+		return
+	}
+
+	// Update the context
+	_, err = h.db.Exec(`
+		UPDATE contexts
+		SET task_id = $1, title = $2, content = $3, tags = $4, updated_at = $5
+		WHERE id = $6
+	`, req.TaskID, req.Title, req.Content, pq.Array(req.Tags), time.Now(), id)
+	if err != nil {
+		http.Error(w, "Failed to update context", http.StatusInternalServerError)
+		return
+	}
+
+	// Get updated context
+	var updatedCtx models.Context
+	err = h.db.QueryRow(`
+		SELECT id, project_id, agent_id, task_id, title, content, tags, created_at, updated_at
+		FROM contexts
+		WHERE id = $1
+	`, id).Scan(&updatedCtx.ID, &updatedCtx.ProjectID, &updatedCtx.AgentID, &updatedCtx.TaskID, &updatedCtx.Title, &updatedCtx.Content, &updatedCtx.Tags, &updatedCtx.CreatedAt, &updatedCtx.UpdatedAt)
+	if err != nil {
+		http.Error(w, "Failed to retrieve updated context", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast context update
+	h.hub.BroadcastToProject(updatedCtx.ProjectID, "context_updated", updatedCtx)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedCtx)
+}
+
+func (h *ContextHandler) DeleteContext(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid context ID format", http.StatusBadRequest)
+		return
+	}
+
+	// Check if context exists and get project_id for broadcasting
+	var projectID uuid.UUID
+	err = h.db.QueryRow(`
+		SELECT project_id FROM contexts WHERE id = $1
+	`, id).Scan(&projectID)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Context not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, "Failed to retrieve context", http.StatusInternalServerError)
+		return
+	}
+
+	// Delete the context
+	result, err := h.db.Exec(`DELETE FROM contexts WHERE id = $1`, id)
+	if err != nil {
+		http.Error(w, "Failed to delete context", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		http.Error(w, "Failed to confirm deletion", http.StatusInternalServerError)
+		return
+	}
+
+	if rowsAffected == 0 {
+		http.Error(w, "Context not found", http.StatusNotFound)
+		return
+	}
+
+	// Broadcast context deletion
+	h.hub.BroadcastToProject(projectID, "context_deleted", map[string]interface{}{
+		"id": id,
+	})
+
+	w.WriteHeader(http.StatusNoContent)
+}

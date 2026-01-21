@@ -72,7 +72,7 @@ function handleWebSocketMessage(data) {
         loadTasks(currentProject);
     } else if (data.type === 'agent_update') {
         loadAgents(currentProject);
-    } else if (data.type === 'context_added') {
+    } else if (data.type === 'context_added' || data.type === 'context_updated' || data.type === 'context_deleted') {
         loadContexts(currentProject);
     }
 }
@@ -304,6 +304,10 @@ function renderContexts() {
             <div class="card-header">
                 <div class="card-title">${c.title}</div>
                 <div class="card-meta">${new Date(c.created_at).toLocaleDateString()}</div>
+                <div class="card-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="editContext('${c.id}')">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteContext('${c.id}')">Delete</button>
+                </div>
             </div>
             <div class="card-body">
                 <p>${c.content.substring(0, 200)}${c.content.length > 200 ? '...' : ''}</p>
@@ -349,6 +353,86 @@ async function createContext(event) {
     }
 }
 
+async function editContext(id) {
+    try {
+        const response = await fetch(`${API_BASE}/contexts/${id}`);
+        const context = await response.json();
+        
+        // Populate the modal with existing data
+        document.getElementById('contextProjectId').value = context.project_id;
+        document.getElementById('contextTitle').value = context.title;
+        document.getElementById('contextContent').value = context.content;
+        document.getElementById('contextTags').value = context.tags ? context.tags.join(', ') : '';
+        
+        // Load agents and tasks for the project
+        await loadAgentsAndTasksForContext();
+        
+        // Set agent and task if they exist
+        if (context.agent_id) {
+            document.getElementById('contextAgentId').value = context.agent_id;
+        }
+        if (context.task_id) {
+            document.getElementById('contextTaskId').value = context.task_id;
+        }
+        
+        // Change modal title and button
+        document.querySelector('#contextModal .modal-title').textContent = 'Edit Documentation';
+        document.querySelector('#contextModal .btn-primary').textContent = 'Update Documentation';
+        document.querySelector('#contextModal .btn-primary').onclick = () => updateContext(id);
+        
+        document.getElementById('contextModal').classList.add('active');
+    } catch (error) {
+        console.error('Failed to load context for editing:', error);
+        showNotification('Failed to load documentation for editing', 'error');
+    }
+}
+
+async function updateContext(id) {
+    const task_id = document.getElementById('contextTaskId').value || null;
+    const title = document.getElementById('contextTitle').value;
+    const content = document.getElementById('contextContent').value;
+    const tagsStr = document.getElementById('contextTags').value;
+    const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()) : [];
+    
+    try {
+        await fetch(`${API_BASE}/contexts/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                task_id, 
+                title, 
+                content, 
+                tags 
+            })
+        });
+        
+        loadContexts(currentProject);
+        closeModal('contextModal');
+        showNotification('Documentation updated successfully');
+    } catch (error) {
+        console.error('Failed to update context:', error);
+        showNotification('Failed to update documentation', 'error');
+    }
+}
+
+async function deleteContext(id) {
+    if (!confirm('Are you sure you want to delete this documentation?')) {
+        return;
+    }
+    
+    try {
+        await fetch(`${API_BASE}/contexts/${id}`, {
+            method: 'DELETE'
+        });
+        
+        loadContexts(currentProject);
+        showNotification('Documentation deleted successfully');
+    } catch (error) {
+        console.error('Failed to delete context:', error);
+        showNotification('Failed to delete documentation', 'error');
+    }
+}
+
 // Modal management
 function openProjectModal() {
     document.getElementById('projectModal').classList.add('active');
@@ -378,6 +462,17 @@ function openContextModal() {
         showNotification('Please select a project first', 'error');
         return;
     }
+    
+    // Reset modal to create mode
+    document.querySelector('#contextModal .modal-title').textContent = 'Add Documentation';
+    document.querySelector('#contextModal .btn-primary').textContent = 'Add Documentation';
+    document.querySelector('#contextModal .btn-primary').onclick = createContext;
+    
+    // Clear form fields
+    document.getElementById('contextTitle').value = '';
+    document.getElementById('contextContent').value = '';
+    document.getElementById('contextTags').value = '';
+    
     populateProjectSelect('contextProjectId');
     loadAgentsAndTasksForContext();
     document.getElementById('contextModal').classList.add('active');

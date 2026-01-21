@@ -107,3 +107,14 @@ func ValidateCreateContextRequest(req *models.CreateContextRequest) error {
 	}
 	return nil
 }
+
+// ValidateUpdateContextRequest validates context update request
+func ValidateUpdateContextRequest(req *models.UpdateContextRequest) error {
+	if strings.TrimSpace(req.Title) == "" {
+		return ErrEmptyTitle
+	}
+	if len(req.Title) > 255 {
+		return ErrTitleTooLong
+	}
+	return nil
+}

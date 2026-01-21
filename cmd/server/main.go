@@ -76,6 +76,8 @@ func main() {
 	api.HandleFunc("/contexts", contextHandler.CreateContext).Methods("POST")
 	api.HandleFunc("/contexts", contextHandler.ListContexts).Methods("GET")
 	api.HandleFunc("/contexts/{id}", contextHandler.GetContext).Methods("GET")
+	api.HandleFunc("/contexts/{id}", contextHandler.UpdateContext).Methods("PUT")
+	api.HandleFunc("/contexts/{id}", contextHandler.DeleteContext).Methods("DELETE")
 
 	// Documentation
 	api.HandleFunc("/docs", docsHandler.ListDocs).Methods("GET")
