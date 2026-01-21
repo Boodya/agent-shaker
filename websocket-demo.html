@@ -187,13 +187,50 @@
             color: #9ca3af;
             padding: 40px;
         }
+
+        /* New styles for controls */
+        .controls {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            color: #6b7280;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .controls input {
+            margin-left: 8px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .reconnect-info {
+            margin-top: 10px;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .last-message {
+            margin-top: 6px;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 MCP Task Tracker</h1>
+            <h1>🤖 Agent Shaker - MCP Task Tracker</h1>
             <p>Real-time Agent Coordination Dashboard</p>
+            <p style="font-size: 0.9rem; margin-top: 8px; opacity: 0.8;">
+                WebSocket Demo • Works with Direct API (port 8080) or Nginx Proxy (port 80)
+            </p>
         </div>
 
         <div class="card">
@@ -202,8 +239,19 @@
                 <span class="status-indicator" id="statusIndicator"></span>
                 <span class="status-text" id="statusText">Connecting...</span>
             </p>
-            
-            <div class="info-grid">
+
+            <!-- connection controls -->
+            <div class="controls" style="margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <label style="color:#6b7280; font-weight:600; font-size:0.9rem;">Project ID:
+                    <input id="projectIdInput" value="demo" style="margin-left:8px; padding:6px 8px; border-radius:6px; border:1px solid #e5e7eb;" />
+                </label>
+                <button id="connectBtn" class="btn">Connect</button>
+                <button id="disconnectBtn" class="btn" style="background:#ef4444;">Disconnect</button>
+                <button id="simulateBtn" class="btn" style="background:#10b981;">Simulate Update</button>
+                <button id="clearBtn" class="btn" style="background:#9ca3af;">Clear</button>
+            </div>
+
+            <div class="info-grid" style="margin-top:12px;">
                 <div class="info-item">
                     <div class="info-label">Total Updates</div>
                     <div class="info-value" id="updateCount">0</div>
@@ -220,6 +268,13 @@
                     <div class="info-label">Pending</div>
                     <div class="info-value" id="pendingCount">0</div>
                 </div>
+            </div>
+
+            <div style="margin-top:10px; color:#6b7280; font-size:0.9rem;">
+                Reconnects: <span id="reconnectCount">0</span> • Next attempt in <span id="reconnectCountdown">—</span>s
+            </div>
+            <div style="margin-top:6px; color:#6b7280; font-size:0.9rem;">
+                Last message: <span id="lastMessage">—</span>
             </div>
         </div>
 
@@ -244,33 +299,104 @@
             failed: 0
         };
 
-        function connect() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const host = window.location.hostname;
-            const port = window.location.port || '8080';
+        let reconnectAttempts = 0;
+        let reconnectTimer = null;
+        let reconnectDelay = 3; // seconds for countdown
+        let reconnectCountdown = 0;
+        let manualDisconnect = false;
+
+        function buildWebSocketUrl(projectId) {
+            // Robust WebSocket URL builder that works with:
+            // - Direct Go server access (localhost:8080)
+            // - Nginx proxy (localhost:80 or production domains)
+            // - File:// protocol (defaults to localhost:8080)
             
-            ws = new WebSocket(`${protocol}//${host}:${port}/ws?project_id=demo`);
+            const locProto = window.location.protocol;
+            const isSecure = locProto === 'https:';
+            const wsProto = isSecure ? 'wss:' : 'ws:';
+
+            // Determine host
+            let host = window.location.hostname;
+            if (!host || host === '' || locProto === 'file:') {
+                // If opened as file://, default to localhost
+                host = 'localhost';
+            }
+
+            // Determine port
+            let port = window.location.port;
+            if (!port || port === '') {
+                // If no port specified:
+                // - For file:// protocol or localhost without port -> use 8080 (direct Go server)
+                // - For http -> use 80 (nginx proxy)
+                // - For https -> use 443 (nginx proxy with SSL)
+                if (locProto === 'file:' || host === 'localhost') {
+                    port = '8080';  // Direct access to Go server
+                } else {
+                    port = isSecure ? '443' : '80';  // Nginx proxy
+                }
+            }
+
+            // Build URL
+            // For standard HTTP/HTTPS ports (80/443), omit port in URL
+            const needsPort = !(port === '80' && !isSecure) && !(port === '443' && isSecure);
+            const hostPort = needsPort ? `${host}:${port}` : host;
+            
+            const path = `/ws?project_id=${encodeURIComponent(projectId)}`;
+            return `${wsProto}//${hostPort}${path}`;
+        }
+
+        function connect(projectId) {
+            if (!projectId) projectId = document.getElementById('projectIdInput').value || 'demo';
+            manualDisconnect = false;
+
+            const url = buildWebSocketUrl(projectId);
+            console.log('Connecting to', url);
+
+            try {
+                ws = new WebSocket(url);
+            } catch (err) {
+                console.error('WebSocket construction failed', err);
+                scheduleReconnect();
+                return;
+            }
 
             ws.onopen = () => {
                 console.log('WebSocket connected');
+                reconnectAttempts = 0;
                 updateStatus(true);
+                document.getElementById('lastMessage').textContent = 'Connected to ' + projectId;
+                clearReconnectCountdown();
             };
 
             ws.onmessage = (event) => {
-                console.log('Received message:', event.data);
-                const data = JSON.parse(event.data);
+                // Show last raw message briefly
+                const msg = event.data.length > 200 ? event.data.substring(0, 200) + '…' : event.data;
+                document.getElementById('lastMessage').textContent = msg;
                 
-                if (data.type === 'task_update') {
-                    handleTaskUpdate(data.data);
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    // Handle different message types from the API
+                    if (data.type === 'task_update' || data.type === 'task_created') {
+                        handleTaskUpdate(data.data || data.payload);
+                    } else if (data.type === 'agent_update' || data.type === 'agent_registered') {
+                        // Can add agent update handling here
+                        console.log('Agent update:', data);
+                    } else if (data.type === 'context_added') {
+                        // Can add context update handling here
+                        console.log('Context added:', data);
+                    } else {
+                        console.log('Unknown message type:', data.type);
+                    }
+                } catch (err) {
+                    console.warn('Received non-JSON or unexpected payload', err);
                 }
             };
 
-            ws.onclose = () => {
-                console.log('WebSocket disconnected');
+            ws.onclose = (ev) => {
+                console.log('WebSocket disconnected', ev);
                 updateStatus(false);
-                
-                // Reconnect after 3 seconds
-                setTimeout(connect, 3000);
+                if (!manualDisconnect) scheduleReconnect();
             };
 
             ws.onerror = (error) => {
@@ -278,58 +404,137 @@
             };
         }
 
+        function disconnect() {
+            manualDisconnect = true;
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                ws.close();
+            }
+            clearReconnectCountdown();
+            updateStatus(false);
+        }
+
+        function scheduleReconnect() {
+            reconnectAttempts++;
+            document.getElementById('reconnectCount').textContent = reconnectAttempts;
+
+            reconnectCountdown = reconnectDelay;
+            document.getElementById('reconnectCountdown').textContent = reconnectCountdown;
+
+            clearReconnectCountdown();
+            reconnectTimer = setInterval(() => {
+                reconnectCountdown--;
+                document.getElementById('reconnectCountdown').textContent = reconnectCountdown > 0 ? reconnectCountdown : 0;
+                if (reconnectCountdown <= 0) {
+                    clearReconnectCountdown();
+                    const projectId = document.getElementById('projectIdInput').value || 'demo';
+                    connect(projectId);
+                }
+            }, 1000);
+        }
+
+        function clearReconnectCountdown() {
+            if (reconnectTimer) {
+                clearInterval(reconnectTimer);
+                reconnectTimer = null;
+            }
+            document.getElementById('reconnectCountdown').textContent = '—';
+        }
+
         function updateStatus(connected) {
             const indicator = document.getElementById('statusIndicator');
             const text = document.getElementById('statusText');
-            
+
             indicator.className = 'status-indicator ' + (connected ? 'connected' : 'disconnected');
             text.textContent = connected ? 'Connected' : 'Disconnected';
         }
 
         function handleTaskUpdate(update) {
             updateCount++;
-            
-            // Update status counts
-            if (statusCounts.hasOwnProperty(update.status)) {
-                statusCounts[update.status]++;
+
+            // normalize status names
+            const s = (update.status || '').toLowerCase();
+            const statusKey = s === 'done' ? 'completed' : (s || 'pending');
+
+            if (statusCounts.hasOwnProperty(statusKey)) {
+                statusCounts[statusKey]++;
             }
-            
+
             // Update counters
             document.getElementById('updateCount').textContent = updateCount;
             document.getElementById('completedCount').textContent = statusCounts.completed;
             document.getElementById('inProgressCount').textContent = statusCounts.in_progress;
             document.getElementById('pendingCount').textContent = statusCounts.pending;
-            
+
             // Add update to list
             const container = document.getElementById('updatesContainer');
-            
+
             // Remove empty state
-            if (container.querySelector('.empty-state')) {
-                container.innerHTML = '';
-            }
-            
+            const empty = container.querySelector('.empty-state');
+            if (empty) empty.remove();
+
             const updateItem = document.createElement('div');
             updateItem.className = 'update-item';
             updateItem.innerHTML = `
                 <div class="update-header">
-                    <span class="task-status ${update.status}">${update.status.replace('_', ' ')}</span>
-                    <span class="timestamp">${new Date(update.timestamp).toLocaleTimeString()}</span>
+                    <span class="task-status ${statusKey}">${(statusKey).replace('_', ' ')}</span>
+                    <span class="timestamp">${new Date(update.timestamp || Date.now()).toLocaleTimeString()}</span>
                 </div>
-                <div style="font-weight: 600; color: #1f2937;">Task ID: ${update.task_id.substring(0, 8)}...</div>
-                <div style="color: #6b7280; font-size: 0.875rem; margin-top: 4px;">Agent: ${update.agent_id.substring(0, 8)}...</div>
-                ${update.message ? `<div class="message">💬 ${update.message}</div>` : ''}
+                <div style="font-weight: 600; color: #1f2937;">Task ID: ${((update.task_id||'').substring(0, 8))}...</div>
+                <div style="color: #6b7280; font-size: 0.875rem; margin-top: 4px;">Agent: ${((update.agent_id||'').substring(0, 8))}...</div>
+                ${update.message ? `<div class="message">💬 ${escapeHtml(update.message)}</div>` : ''}
             `;
-            
+
             container.insertBefore(updateItem, container.firstChild);
-            
+
             // Keep only last 20 updates
             while (container.children.length > 20) {
                 container.removeChild(container.lastChild);
             }
         }
 
-        // Connect on page load
-        connect();
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // simulate a local update (useful for demo without server)
+        function simulateUpdate() {
+            const fake = {
+                task_id: 'task-' + Math.random().toString(36).substr(2, 8),
+                agent_id: 'agent-' + Math.random().toString(36).substr(2, 8),
+                status: ['pending','in_progress','completed','failed'][Math.floor(Math.random()*4)],
+                timestamp: Date.now(),
+                message: 'Simulated update for demo'
+            };
+            handleTaskUpdate(fake);
+        }
+
+        // clear updates
+        function clearUpdates() {
+            const container = document.getElementById('updatesContainer');
+            container.innerHTML = `<div class="empty-state"><p>Waiting for task updates...</p><p style="font-size: 0.875rem; margin-top: 8px;">Run the demo script to see live updates!</p></div>`;
+            updateCount = 0;
+            statusCounts = { completed:0, in_progress:0, pending:0, failed:0 };
+            document.getElementById('updateCount').textContent = updateCount;
+            document.getElementById('completedCount').textContent = 0;
+            document.getElementById('inProgressCount').textContent = 0;
+            document.getElementById('pendingCount').textContent = 0;
+        }
+
+        // wire up controls
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('connectBtn').addEventListener('click', () => connect(document.getElementById('projectIdInput').value));
+            document.getElementById('disconnectBtn').addEventListener('click', disconnect);
+            document.getElementById('simulateBtn').addEventListener('click', simulateUpdate);
+            document.getElementById('clearBtn').addEventListener('click', clearUpdates);
+
+            // try auto-connect on load
+            connect(document.getElementById('projectIdInput').value);
+        });
     </script>
 </body>
 </html>
