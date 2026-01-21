@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -15,7 +16,12 @@ type Database struct {
 
 // InitDB initializes the database connection and creates tables
 func InitDB() (*Database, error) {
-	db, err := sql.Open("sqlite3", "./data/mcp-tracker.db")
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./data/mcp-tracker.db"
+	}
+
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

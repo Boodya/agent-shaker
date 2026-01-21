@@ -14,7 +14,10 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins for development
+		// In production, validate specific origins
+		// For now, allow all origins for development
+		// TODO: Configure allowed origins via environment variable
+		return true
 	},
 }
 
@@ -125,14 +128,14 @@ func (c *Client) readPump() {
 	}()
 
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, _, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("WebSocket error: %v", err)
 			}
 			break
 		}
-		log.Printf("Received message: %s", message)
+		// Messages from clients are not processed in this implementation
 	}
 }
 

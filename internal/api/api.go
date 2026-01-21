@@ -49,8 +49,13 @@ func NewRouter(database *db.Database, hub *websocket.Hub) *mux.Router {
 	// WebSocket endpoint
 	r.HandleFunc("/ws", hub.HandleWebSocket)
 
-	// Serve static HTML demo
+	// Serve static HTML demo (only specific file for security)
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Only serve the root path, prevent directory traversal
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 		http.ServeFile(w, r, "websocket-demo.html")
 	})
 
