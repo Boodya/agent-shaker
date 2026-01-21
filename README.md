@@ -6,11 +6,12 @@ MCP Task Tracker is a real-time task coordination system designed for AI agents 
 
 ## 📚 Documentation
 
-- **[🚀 Quick Start - Agent Setup](./QUICKSTART_AGENT.md)** - Get started in 2 minutes!
-- **[📖 Complete Agent Setup Guide](./AGENT_SETUP_GUIDE.md)** - Comprehensive manual with examples
-- **[🏗️ Architecture Overview](./ARCHITECTURE.md)** - System diagrams and workflows
-- **[⚡ Quick Start - Server Setup](./QUICKSTART.md)** - Original server setup guide
+- **[🚀 Quick Start - Agent Setup](./docs/QUICKSTART_AGENT.md)** - Get started in 2 minutes!
+- **[📖 Complete Agent Setup Guide](./docs/AGENT_SETUP_GUIDE.md)** - Comprehensive manual with examples
+- **[🏗️ Architecture Overview](./docs/ARCHITECTURE.md)** - System diagrams and workflows
+- **[⚡ Quick Start - Server Setup](./docs/QUICKSTART.md)** - Original server setup guide
 - **[📝 API Documentation](./docs/API.md)** - Full API reference
+- **[📚 Complete Documentation](./docs/README.md)** - All documentation organized by category
 
 ## Features
 

@@ -307,7 +307,7 @@ docker-compose logs mcp-server
 ## Resources
 
 - **Full Guide**: `COPILOT_MCP_INTEGRATION.md`
-- **API Docs**: `docs/API.md`
+- **API Docs**: `API.md`
 - **Bridge Script**: `mcp-bridge.js`
 - **Setup Script**: `setup-mcp-bridge.ps1`
 

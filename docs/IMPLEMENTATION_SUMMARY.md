@@ -133,8 +133,8 @@ All models include proper structure and validation:
 
 - ✅ `README.md` - Complete overview and setup
 - ✅ `QUICKSTART.md` - 5-minute quick start
-- ✅ `docs/API.md` - Full API reference
-- ✅ `docs/COPILOT_INTEGRATION.md` - Copilot setup
+- ✅ `API.md` - Full API reference
+- ✅ `COPILOT_INTEGRATION.md` - Copilot setup
 - ✅ `CONTRIBUTING.md` - Development guide
 - ✅ Code comments and examples
 
