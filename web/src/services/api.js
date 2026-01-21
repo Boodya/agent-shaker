@@ -85,6 +85,26 @@ export default {
     return api.get(`/tasks/${taskId}/documentation`)
   },
 
+  // Contexts
+  getContexts() {
+    return api.get('/contexts')
+  },
+  getContext(id) {
+    return api.get(`/contexts/${id}`)
+  },
+  getProjectContexts(projectId) {
+    return api.get('/contexts', { params: { project_id: projectId } })
+  },
+  createContext(data) {
+    return api.post('/contexts', data)
+  },
+  updateContext(id, data) {
+    return api.put(`/contexts/${id}`, data)
+  },
+  deleteContext(id) {
+    return api.delete(`/contexts/${id}`)
+  },
+
   // Health
   checkHealth() {
     return axios.get('/health')
