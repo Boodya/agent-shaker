@@ -51,7 +51,7 @@ func main() {
 	agentHandler := handlers.NewAgentHandler(db, hub)
 	taskHandler := handlers.NewTaskHandler(db, hub)
 	contextHandler := handlers.NewContextHandler(db, hub)
-	wsHandler := handlers.NewWebSocketHandler()
+	wsHandler := handlers.NewWebSocketHandler(hub)
 	docsHandler := handlers.NewDocsHandler()
 
 	// Setup router
