@@ -134,10 +134,30 @@ func (h *TaskHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
 	var tasks []models.Task
 	for rows.Next() {
 		var t models.Task
-		if err := rows.Scan(&t.ID, &t.ProjectID, &t.Title, &t.Description, &t.Status, &t.Priority, &t.CreatedBy, &t.AssignedTo, &t.Output, &t.CreatedAt, &t.UpdatedAt); err != nil {
+		var assignedToStr sql.NullString
+		var outputStr sql.NullString
+
+		if err := rows.Scan(&t.ID, &t.ProjectID, &t.Title, &t.Description, &t.Status, &t.Priority, &t.CreatedBy, &assignedToStr, &outputStr, &t.CreatedAt, &t.UpdatedAt); err != nil {
 			http.Error(w, "Failed to scan task", http.StatusInternalServerError)
 			return
 		}
+
+		// Handle nullable assigned_to field
+		if assignedToStr.Valid {
+			if assignedToUUID, err := uuid.Parse(assignedToStr.String); err == nil {
+				t.AssignedTo = &assignedToUUID
+			}
+		} else {
+			t.AssignedTo = nil
+		}
+
+		// Handle nullable output field
+		if outputStr.Valid {
+			t.Output = outputStr.String
+		} else {
+			t.Output = ""
+		}
+
 		tasks = append(tasks, t)
 	}
 
@@ -159,17 +179,36 @@ func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var task models.Task
+	var assignedToStr sql.NullString
+	var outputStr sql.NullString
+
 	err = h.db.QueryRow(`
 		SELECT id, project_id, title, description, status, priority, created_by, assigned_to, output, created_at, updated_at
 		FROM tasks
 		WHERE id = $1
-	`, id).Scan(&task.ID, &task.ProjectID, &task.Title, &task.Description, &task.Status, &task.Priority, &task.CreatedBy, &task.AssignedTo, &task.Output, &task.CreatedAt, &task.UpdatedAt)
+	`, id).Scan(&task.ID, &task.ProjectID, &task.Title, &task.Description, &task.Status, &task.Priority, &task.CreatedBy, &assignedToStr, &outputStr, &task.CreatedAt, &task.UpdatedAt)
 	if err == sql.ErrNoRows {
 		http.Error(w, "Task not found", http.StatusNotFound)
 		return
 	} else if err != nil {
 		http.Error(w, "Failed to retrieve task", http.StatusInternalServerError)
 		return
+	}
+
+	// Handle nullable assigned_to field
+	if assignedToStr.Valid {
+		if assignedToUUID, err := uuid.Parse(assignedToStr.String); err == nil {
+			task.AssignedTo = &assignedToUUID
+		}
+	} else {
+		task.AssignedTo = nil
+	}
+
+	// Handle nullable output field
+	if outputStr.Valid {
+		task.Output = outputStr.String
+	} else {
+		task.Output = ""
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -208,17 +247,36 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	// Get updated task
 	var task models.Task
+	var assignedToStr sql.NullString
+	var outputStr sql.NullString
+
 	err = h.db.QueryRow(`
 		SELECT id, project_id, title, description, status, priority, created_by, assigned_to, output, created_at, updated_at
 		FROM tasks
 		WHERE id = $1
-	`, id).Scan(&task.ID, &task.ProjectID, &task.Title, &task.Description, &task.Status, &task.Priority, &task.CreatedBy, &task.AssignedTo, &task.Output, &task.CreatedAt, &task.UpdatedAt)
+	`, id).Scan(&task.ID, &task.ProjectID, &task.Title, &task.Description, &task.Status, &task.Priority, &task.CreatedBy, &assignedToStr, &outputStr, &task.CreatedAt, &task.UpdatedAt)
 	if err == sql.ErrNoRows {
 		http.Error(w, "Task not found", http.StatusNotFound)
 		return
 	} else if err != nil {
 		http.Error(w, "Failed to retrieve task", http.StatusInternalServerError)
 		return
+	}
+
+	// Handle nullable assigned_to field
+	if assignedToStr.Valid {
+		if assignedToUUID, err := uuid.Parse(assignedToStr.String); err == nil {
+			task.AssignedTo = &assignedToUUID
+		}
+	} else {
+		task.AssignedTo = nil
+	}
+
+	// Handle nullable output field
+	if outputStr.Valid {
+		task.Output = outputStr.String
+	} else {
+		task.Output = ""
 	}
 
 	// Broadcast task update
@@ -275,17 +333,36 @@ func (h *TaskHandler) UpdateTaskStatus(w http.ResponseWriter, r *http.Request) {
 
 	// Get updated task
 	var task models.Task
+	var assignedToStr sql.NullString
+	var outputStr sql.NullString
+
 	err = h.db.QueryRow(`
 		SELECT id, project_id, title, description, status, priority, created_by, assigned_to, output, created_at, updated_at
 		FROM tasks
 		WHERE id = $1
-	`, id).Scan(&task.ID, &task.ProjectID, &task.Title, &task.Description, &task.Status, &task.Priority, &task.CreatedBy, &task.AssignedTo, &task.Output, &task.CreatedAt, &task.UpdatedAt)
+	`, id).Scan(&task.ID, &task.ProjectID, &task.Title, &task.Description, &task.Status, &task.Priority, &task.CreatedBy, &assignedToStr, &outputStr, &task.CreatedAt, &task.UpdatedAt)
 	if err == sql.ErrNoRows {
 		http.Error(w, "Task not found", http.StatusNotFound)
 		return
 	} else if err != nil {
 		http.Error(w, "Failed to retrieve task", http.StatusInternalServerError)
 		return
+	}
+
+	// Handle nullable assigned_to field
+	if assignedToStr.Valid {
+		if assignedToUUID, err := uuid.Parse(assignedToStr.String); err == nil {
+			task.AssignedTo = &assignedToUUID
+		}
+	} else {
+		task.AssignedTo = nil
+	}
+
+	// Handle nullable output field
+	if outputStr.Valid {
+		task.Output = outputStr.String
+	} else {
+		task.Output = ""
 	}
 
 	// Broadcast task update
