@@ -27,15 +27,5 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  web:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-    ports:
-      - "80:80"
-    depends_on:
-      - mcp-server
-    restart: unless-stopped
-
 volumes:
   postgres_data:

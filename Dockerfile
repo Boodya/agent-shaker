@@ -19,9 +19,8 @@ WORKDIR /app
 # Copy binary
 COPY --from=builder /mcp-server .
 
-# Copy migrations and static files
+# Copy migrations
 COPY migrations ./migrations
-COPY web ./web
 
 # Copy documentation files
 COPY *.md ./

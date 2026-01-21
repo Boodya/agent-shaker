@@ -1,8 +1,8 @@
 # 🚀 MCP Task Tracker
 
-> AI Agent Task Coordination System for Microservices Architecture
+> AI Agent Task Coordination System - Backend API & MCP Server
 
-MCP Task Tracker is a real-time task coordination system designed for AI agents (like GitHub Copilot) working in microservices architectures. It enables backend and frontend teams to synchronize work, exchange tasks, and share documentation in real-time.
+MCP Task Tracker is a real-time task coordination backend system designed for AI agents (like GitHub Copilot) working in microservices architectures. It provides a REST API and MCP server for task coordination, agent management, and documentation sharing.
 
 ## 📚 Documentation
 
@@ -15,14 +15,14 @@ MCP Task Tracker is a real-time task coordination system designed for AI agents 
 
 ## Features
 
-- ✅ **Project Management** - Create and manage multiple projects
+- ✅ **Project Management** - Create and manage multiple projects via REST API
 - 🤖 **Agent Registration** - Register AI agents (backend, frontend, devops, etc.)
 - 📋 **Task Coordination** - Create, assign, and track tasks across teams
 - 📚 **Documentation Hub** - Centralized markdown documentation with tags
 - 🔄 **Real-time Updates** - WebSocket-based live notifications
 - 🎯 **Cross-team Communication** - Backend ↔ Frontend task handoff
 - 🔍 **Advanced Filtering** - Filter by status, priority, tags, agents
-- 🎨 **Modern UI** - Vue.js 3 web interface with responsive design
+- 🚀 **MCP Server** - Model Context Protocol server for AI agent coordination
 
 ## Architecture
 
@@ -31,7 +31,7 @@ MCP Task Tracker is a real-time task coordination system designed for AI agents 
 1. **Go REST API Server** - Core backend with HTTP handlers
 2. **PostgreSQL Database** - Persistent storage for all entities
 3. **WebSocket Hub** - Real-time notification system
-4. **Vue.js Web UI** - Modern SPA dashboard with state management
+4. **MCP Server** - AI agent coordination protocol server
 
 ### Data Model
 
@@ -42,7 +42,7 @@ MCP Task Tracker is a real-time task coordination system designed for AI agents 
 
 ## Quick Start
 
-### Option 1: Docker Compose (Recommended - Static UI)
+### Docker Compose (Recommended)
 
 ```bash
 # Clone the repository
@@ -56,44 +56,11 @@ docker-compose up -d
 curl http://localhost:8080/health
 ```
 
-The application will be available at:
-- Web UI: http://localhost:8080
+The API will be available at:
 - API: http://localhost:8080/api
 - WebSocket: ws://localhost:8080/ws
-
-### Option 2: Vue.js Development (Recommended for UI Development)
-
-```powershell
-# 1. Start the backend with Docker
-docker-compose up -d
-
-# 2. Install and run Vue.js frontend
-.\setup-vue.ps1
-
-# Or manually:
-cd web
-npm install
-npm run dev
-```
-
-The Vue.js app will be available at:
-- Frontend: http://localhost:3000 (with HMR)
-- Backend API: http://localhost:8080/api
-- WebSocket: ws://localhost:8080/ws
-
-### Option 3: Production Build with Vue.js
-
-```bash
-# Build Vue.js frontend
-cd web
-npm install
-npm run build
-cd ..
-
-# Build and run with Docker (includes Vue.js build)
-docker build -f Dockerfile.vue -t mcp-tracker:vue .
-docker-compose -f docker-compose.vue.yml up -d
-```
+- Health: http://localhost:8080/health
+- Docs: http://localhost:8080/api/docs
 
 ### Local Development
 
@@ -118,6 +85,20 @@ cp .env.example .env
 # Run the server
 go run cmd/server/main.go
 ```
+
+## Client Integration
+
+This is a backend-only service. To build a frontend:
+
+1. **REST API Client** - Use any HTTP client library to consume the API
+2. **WebSocket Client** - Connect to `/ws` for real-time updates
+3. **MCP Client** - Use MCP protocol for AI agent coordination
+
+Example frontend technologies:
+- Vue.js / React / Angular
+- Mobile apps (iOS/Android)
+- CLI tools
+- VS Code extensions
 
 ## API Documentation
 
