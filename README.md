@@ -4,6 +4,14 @@
 
 MCP Task Tracker is a real-time task coordination system designed for AI agents (like GitHub Copilot) working in microservices architectures. It enables backend and frontend teams to synchronize work, exchange tasks, and share documentation in real-time.
 
+## 📚 Documentation
+
+- **[🚀 Quick Start - Agent Setup](./QUICKSTART_AGENT.md)** - Get started in 2 minutes!
+- **[📖 Complete Agent Setup Guide](./AGENT_SETUP_GUIDE.md)** - Comprehensive manual with examples
+- **[🏗️ Architecture Overview](./ARCHITECTURE.md)** - System diagrams and workflows
+- **[⚡ Quick Start - Server Setup](./QUICKSTART.md)** - Original server setup guide
+- **[📝 API Documentation](./docs/API.md)** - Full API reference
+
 ## Features
 
 - ✅ **Project Management** - Create and manage multiple projects
