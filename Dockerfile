@@ -18,7 +18,9 @@ RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o mcp-tracker .
 # Final stage
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates sqlite-libs
+# Update ca-certificates first
+RUN apk update && apk --no-cache add ca-certificates sqlite-libs || \
+    (apk update && apk --no-cache add ca-certificates sqlite-libs)
 
 WORKDIR /root/
 

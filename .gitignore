@@ -37,3 +37,6 @@ data/
 
 # Build artifacts
 mcp-tracker
+
+# Server logs
+server.log
