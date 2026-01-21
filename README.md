@@ -1,310 +1,368 @@
-# MCP Task Tracker
+# 🚀 MCP Task Tracker
 
-MCP Task Tracker координирует работу AI агентов между backend и frontend проектами. Система обеспечивает координацию задач, real-time синхронизацию через WebSocket и управление документацией для команд агентов.
+> AI Agent Task Coordination System for Microservices Architecture
 
-## 🚀 Features
+MCP Task Tracker is a real-time task coordination system designed for AI agents (like GitHub Copilot) working in microservices architectures. It enables backend and frontend teams to synchronize work, exchange tasks, and share documentation in real-time.
 
-- **Project Management**: Создание и управление проектами
-- **Agent Registration**: Регистрация агентов с ролями (backend/frontend)
-- **Task Assignment**: Назначение и получение задач через REST API
-- **Status Tracking**: Отслеживание статусов выполнения задач
-- **Documentation**: Добавление markdown документации после выполнения задач
-- **Real-time Sync**: WebSocket для синхронизации обновлений между командами
-- **Docker Support**: Простое развертывание через docker-compose
+## Features
 
-## 📋 Prerequisites
+- ✅ **Project Management** - Create and manage multiple projects
+- 🤖 **Agent Registration** - Register AI agents (backend, frontend, devops, etc.)
+- 📋 **Task Coordination** - Create, assign, and track tasks across teams
+- 📚 **Documentation Hub** - Centralized markdown documentation with tags
+- 🔄 **Real-time Updates** - WebSocket-based live notifications
+- 🎯 **Cross-team Communication** - Backend ↔ Frontend task handoff
+- 🔍 **Advanced Filtering** - Filter by status, priority, tags, agents
 
-- Docker и Docker Compose
-- (Опционально) Go 1.21+ для локальной разработки
+## Architecture
 
-## 🔧 Installation & Setup
+### Components
 
-### Запуск с Docker Compose
+1. **Go REST API Server** - Core backend with HTTP handlers
+2. **PostgreSQL Database** - Persistent storage for all entities
+3. **WebSocket Hub** - Real-time notification system
+4. **Web UI** - Management dashboard (HTML/JS)
 
-1. Клонируйте репозиторий:
+### Data Model
+
+- **Project** - Container for agents and tasks
+- **Agent** - AI agent (Copilot) with role and team
+- **Task** - Work item with status tracking
+- **Context** - Documentation with markdown and tags
+
+## Quick Start
+
+### Using Docker Compose (Recommended)
+
 ```bash
+# Clone the repository
 git clone https://github.com/techbuzzz/agent-shaker.git
 cd agent-shaker
-```
 
-2. Запустите сервер:
-```bash
+# Start all services
 docker-compose up -d
-```
 
-3. Проверьте статус:
-```bash
-docker-compose ps
+# Check health
 curl http://localhost:8080/health
 ```
 
-### Локальная разработка
+The application will be available at:
+- Web UI: http://localhost:8080
+- API: http://localhost:8080/api
+- WebSocket: ws://localhost:8080/ws
+
+### Local Development
+
+#### Prerequisites
+
+- Go 1.21+
+- PostgreSQL 15+
+
+#### Setup
 
 ```bash
-# Установите зависимости
+# Install dependencies
 go mod download
 
-# Создайте директорию для данных
-mkdir -p data
+# Set up environment
+cp .env.example .env
+# Edit .env with your database credentials
 
-# Запустите сервер
-go run main.go
+# Start PostgreSQL
+# Create database: mcp_tracker
+
+# Run the server
+go run cmd/server/main.go
 ```
 
-## 📚 API Documentation
-
-Base URL: `http://localhost:8080/api/v1`
+## API Documentation
 
 ### Projects
 
-#### Создать проект
+#### Create Project
 ```bash
-POST /api/v1/projects
+POST /api/projects
 Content-Type: application/json
 
 {
-  "name": "My Microservice Project",
-  "description": "Backend and frontend coordination"
+  "name": "InvoiceAI",
+  "description": "AI-powered invoice processing"
 }
 ```
 
-#### Получить список проектов
+#### List Projects
 ```bash
-GET /api/v1/projects
+GET /api/projects
 ```
 
-#### Получить проект
+#### Get Project
 ```bash
-GET /api/v1/projects/{id}
+GET /api/projects/{id}
 ```
 
 ### Agents
 
-#### Зарегистрировать агента
+#### Register Agent
 ```bash
-POST /api/v1/agents
+POST /api/agents
 Content-Type: application/json
 
 {
-  "project_id": "project-uuid",
-  "name": "Backend Agent 1",
-  "role": "backend"
+  "project_id": "uuid",
+  "name": "Backend-Copilot",
+  "role": "backend",
+  "team": "Backend Team"
 }
 ```
 
-Доступные роли: `backend`, `frontend`
-
-#### Получить список агентов проекта
+#### List Agents
 ```bash
-GET /api/v1/projects/{project_id}/agents
+GET /api/agents?project_id={uuid}
 ```
 
-#### Получить агента
+#### Update Agent Status
 ```bash
-GET /api/v1/agents/{id}
+PUT /api/agents/{id}/status
+Content-Type: application/json
+
+{
+  "status": "active"
+}
 ```
 
 ### Tasks
 
-#### Создать задачу
+#### Create Task
 ```bash
-POST /api/v1/tasks
+POST /api/tasks
 Content-Type: application/json
 
 {
-  "project_id": "project-uuid",
-  "agent_id": "agent-uuid",
-  "title": "Implement user authentication",
-  "description": "Add JWT-based authentication to the API",
-  "priority": 5
+  "project_id": "uuid",
+  "title": "Implement invoice API",
+  "description": "Create REST endpoint",
+  "priority": "high",
+  "created_by": "agent-uuid",
+  "assigned_to": "agent-uuid"
 }
 ```
 
-#### Получить задачу
+#### List Tasks
 ```bash
-GET /api/v1/tasks/{id}
+GET /api/tasks?project_id={uuid}&status=pending&assigned_to={agent-uuid}
 ```
 
-#### Обновить статус задачи
+#### Get Task
 ```bash
-PUT /api/v1/tasks/{id}/status
+GET /api/tasks/{id}
+```
+
+#### Update Task
+```bash
+PUT /api/tasks/{id}
 Content-Type: application/json
 
 {
-  "status": "in_progress",
-  "message": "Started working on authentication"
+  "status": "done",
+  "output": "API implemented at /api/invoices"
 }
 ```
 
-Доступные статусы: `pending`, `in_progress`, `completed`, `failed`
+### Documentation (Contexts)
 
-#### Получить задачи агента
+#### Add Documentation
 ```bash
-GET /api/v1/agents/{agent_id}/tasks
-```
-
-#### Получить задачи проекта
-```bash
-GET /api/v1/projects/{project_id}/tasks
-```
-
-### Documentation
-
-#### Добавить документацию
-```bash
-POST /api/v1/documentation
+POST /api/contexts
 Content-Type: application/json
 
 {
-  "task_id": "task-uuid",
-  "content": "# Authentication Implementation\n\n## Overview\n...",
-  "created_by": "agent-uuid"
+  "project_id": "uuid",
+  "agent_id": "uuid",
+  "task_id": "uuid",
+  "title": "Invoice API Documentation",
+  "content": "# Invoice API\n\n## Endpoints...",
+  "tags": ["api", "documentation"]
 }
 ```
 
-#### Получить документацию задачи
+#### List Documentation
 ```bash
-GET /api/v1/tasks/{task_id}/documentation
+GET /api/contexts?project_id={uuid}&tags=api,documentation
+```
+
+#### Get Documentation
+```bash
+GET /api/contexts/{id}
 ```
 
 ### WebSocket
 
-Подключение к WebSocket для real-time обновлений:
-
+#### Connect to Project Updates
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/ws?project_id=your-project-id');
+const ws = new WebSocket('ws://localhost:8080/ws?project_id={uuid}');
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log('Update received:', data);
-  // { type: 'task_update', data: { task_id, agent_id, status, message, timestamp } }
+  console.log('Update:', data.type, data.payload);
 };
 ```
 
-## 💡 Usage Example
+Event types:
+- `task_update` - Task created or updated
+- `agent_update` - Agent registered or status changed
+- `context_added` - New documentation added
 
-Полный пример координации агентов:
+## Usage Scenarios
+
+### Scenario 1: New Feature Implementation
+
+1. **Backend Team** creates a task for API implementation
+2. Backend implements API and adds documentation
+3. Backend creates task for Frontend with API details
+4. **Frontend Team** reads API documentation
+5. Frontend implements UI and completes task
+
+### Scenario 2: API Change Request
+
+1. **Frontend** discovers missing API data
+2. Frontend creates task for Backend describing the need
+3. **Backend** receives notification, updates API
+4. Backend updates documentation
+5. Frontend gets notified and updates components
+
+### Scenario 3: Blocked Task
+
+1. **Agent** starts work and discovers dependency
+2. Agent changes status to `blocked`, adds reason
+3. Agent creates task for dependency team
+4. Dependency team gets priority notification
+5. After resolution, original agent continues
+
+## Task Statuses
+
+- `pending` - Waiting to start
+- `in_progress` - Currently being worked on
+- `blocked` - Waiting for dependency
+- `done` - Completed
+- `cancelled` - Cancelled
+
+## Agent Statuses
+
+- `active` - Currently working
+- `idle` - Waiting for tasks
+- `offline` - Disconnected
+
+## GitHub Copilot Integration
+
+Create `.copilot/instructions.md` in your project:
+
+```markdown
+# MCP Task Tracker Integration
+
+## On Start
+1. Register as agent: POST /api/agents
+2. Get tasks: GET /api/tasks?project_id=X&assigned_to=Y
+3. Read docs: GET /api/contexts?project_id=X
+
+## During Work
+1. Update status: PUT /api/tasks/{id} {"status": "in_progress"}
+2. If blocked: PUT /api/tasks/{id} {"status": "blocked", "output": "reason"}
+
+## On Complete
+1. Mark done: PUT /api/tasks/{id} {"status": "done", "output": "result"}
+2. Add docs: POST /api/contexts
+3. Create follow-up tasks: POST /api/tasks
+```
+
+## Database Schema
+
+```sql
+-- Projects
+CREATE TABLE projects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Agents
+CREATE TABLE agents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    role VARCHAR(100),
+    team VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'active',
+    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tasks
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) DEFAULT 'pending',
+    priority VARCHAR(50) DEFAULT 'medium',
+    created_by UUID REFERENCES agents(id),
+    assigned_to UUID REFERENCES agents(id),
+    output TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Contexts (Documentation)
+CREATE TABLE contexts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    agent_id UUID REFERENCES agents(id),
+    task_id UUID REFERENCES tasks(id),
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    tags TEXT[],
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## Development
+
+### Build
 
 ```bash
-# 1. Создать проект
-PROJECT_ID=$(curl -s -X POST http://localhost:8080/api/v1/projects \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Microservice App","description":"Backend + Frontend"}' \
-  | jq -r '.id')
-
-echo "Project created: $PROJECT_ID"
-
-# 2. Зарегистрировать backend агента
-BACKEND_AGENT=$(curl -s -X POST http://localhost:8080/api/v1/agents \
-  -H "Content-Type: application/json" \
-  -d "{\"project_id\":\"$PROJECT_ID\",\"name\":\"Backend Agent\",\"role\":\"backend\"}" \
-  | jq -r '.id')
-
-echo "Backend agent: $BACKEND_AGENT"
-
-# 3. Зарегистрировать frontend агента
-FRONTEND_AGENT=$(curl -s -X POST http://localhost:8080/api/v1/agents \
-  -H "Content-Type: application/json" \
-  -d "{\"project_id\":\"$PROJECT_ID\",\"name\":\"Frontend Agent\",\"role\":\"frontend\"}" \
-  | jq -r '.id')
-
-echo "Frontend agent: $FRONTEND_AGENT"
-
-# 4. Создать задачу для backend агента
-TASK_ID=$(curl -s -X POST http://localhost:8080/api/v1/tasks \
-  -H "Content-Type: application/json" \
-  -d "{\"project_id\":\"$PROJECT_ID\",\"agent_id\":\"$BACKEND_AGENT\",\"title\":\"API Implementation\",\"description\":\"Build REST API\",\"priority\":10}" \
-  | jq -r '.id')
-
-echo "Task created: $TASK_ID"
-
-# 5. Агент получает свои задачи
-curl -s http://localhost:8080/api/v1/agents/$BACKEND_AGENT/tasks | jq
-
-# 6. Обновить статус задачи
-curl -X PUT http://localhost:8080/api/v1/tasks/$TASK_ID/status \
-  -H "Content-Type: application/json" \
-  -d '{"status":"in_progress","message":"Started implementation"}'
-
-# 7. Завершить задачу и добавить документацию
-curl -X PUT http://localhost:8080/api/v1/tasks/$TASK_ID/status \
-  -H "Content-Type: application/json" \
-  -d '{"status":"completed","message":"API completed"}'
-
-curl -X POST http://localhost:8080/api/v1/documentation \
-  -H "Content-Type: application/json" \
-  -d "{\"task_id\":\"$TASK_ID\",\"content\":\"# API Implementation\\n\\n## Endpoints\\n- POST /api/users\\n- GET /api/users/:id\",\"created_by\":\"$BACKEND_AGENT\"}"
-
-# 8. Получить документацию
-curl -s http://localhost:8080/api/v1/tasks/$TASK_ID/documentation | jq
+go build -o mcp-server cmd/server/main.go
 ```
 
-## 🏗️ Architecture
+### Run Tests
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    MCP Task Tracker                      │
-├─────────────────────────────────────────────────────────┤
-│                                                           │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐ │
-│  │   REST API  │    │  WebSocket  │    │   Database  │ │
-│  │             │    │     Hub     │    │   SQLite    │ │
-│  └─────────────┘    └─────────────┘    └─────────────┘ │
-│         │                   │                   │        │
-│         └───────────────────┴───────────────────┘        │
-│                           │                              │
-└───────────────────────────┼──────────────────────────────┘
-                            │
-         ┌──────────────────┼──────────────────┐
-         │                  │                  │
-    ┌────▼────┐        ┌────▼────┐       ┌────▼────┐
-    │ Backend │        │ Backend │       │Frontend │
-    │ Agent 1 │        │ Agent 2 │       │ Agent 1 │
-    └─────────┘        └─────────┘       └─────────┘
+```bash
+go test ./...
 ```
 
-## 🛠️ Technology Stack
+### Build Docker Image
 
-- **Backend**: Go 1.21+
-- **Database**: SQLite
-- **WebSocket**: Gorilla WebSocket
-- **Router**: Gorilla Mux
-- **Container**: Docker & Docker Compose
-
-## 🔍 Project Structure
-
-```
-agent-shaker/
-├── main.go                 # Application entry point
-├── internal/
-│   ├── models/            # Data models
-│   │   └── models.go
-│   ├── db/                # Database layer
-│   │   └── db.go
-│   ├── api/               # REST API handlers
-│   │   └── api.go
-│   └── websocket/         # WebSocket implementation
-│       └── websocket.go
-├── Dockerfile             # Docker image configuration
-├── docker-compose.yml     # Docker Compose configuration
-├── go.mod                 # Go module definition
-└── README.md             # This file
+```bash
+docker build -t mcp-task-tracker .
 ```
 
-## 🤝 Integration with GitHub Copilot
+## Configuration
 
-MCP Task Tracker идеально подходит для координации нескольких экземпляров GitHub Copilot в микросервисной архитектуре:
+Environment variables:
 
-1. **Регистрация агентов**: Каждый экземпляр Copilot регистрируется как агент с определенной ролью
-2. **Получение задач**: Агенты получают задачи через API в соответствии со своей ролью
-3. **Обновление статуса**: Real-time обновления статуса выполнения задач
-4. **Документация**: Автоматическое создание markdown документации после выполнения
-5. **Синхронизация**: WebSocket обеспечивает мгновенную синхронизацию между командами
+- `DATABASE_URL` - PostgreSQL connection string (default: `postgres://mcp:secret@localhost:5432/mcp_tracker?sslmode=disable`)
+- `PORT` - Server port (default: `8080`)
 
-## 📝 License
+## License
 
-MIT License - see LICENSE file for details
+MIT License - see [LICENSE](LICENSE) file for details
 
-## 🤖 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+For issues and questions, please open an issue on GitHub.
