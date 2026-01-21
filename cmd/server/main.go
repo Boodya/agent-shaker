@@ -48,6 +48,7 @@ func main() {
 	taskHandler := handlers.NewTaskHandler(db, hub)
 	contextHandler := handlers.NewContextHandler(db, hub)
 	wsHandler := handlers.NewWebSocketHandler(hub)
+	docsHandler := handlers.NewDocsHandler()
 
 	// Setup router
 	r := mux.NewRouter()
@@ -75,6 +76,10 @@ func main() {
 	api.HandleFunc("/contexts", contextHandler.CreateContext).Methods("POST")
 	api.HandleFunc("/contexts", contextHandler.ListContexts).Methods("GET")
 	api.HandleFunc("/contexts/{id}", contextHandler.GetContext).Methods("GET")
+
+	// Documentation
+	api.HandleFunc("/docs", docsHandler.ListDocs).Methods("GET")
+	api.HandleFunc("/docs/{path:.*}", docsHandler.GetDoc).Methods("GET")
 
 	// WebSocket
 	r.HandleFunc("/ws", wsHandler.HandleWebSocket)

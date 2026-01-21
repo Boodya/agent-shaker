@@ -23,6 +23,10 @@ COPY --from=builder /mcp-server .
 COPY migrations ./migrations
 COPY web ./web
 
+# Copy documentation files
+COPY *.md ./
+COPY docs ./docs
+
 EXPOSE 8080
 
 CMD ["./mcp-server"]

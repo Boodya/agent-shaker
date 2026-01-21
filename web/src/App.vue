@@ -13,6 +13,7 @@
           <router-link to="/projects" class="nav-item">Projects</router-link>
           <router-link to="/agents" class="nav-item">Agents</router-link>
           <router-link to="/tasks" class="nav-item">Tasks</router-link>
+          <router-link to="/docs" class="nav-item">📚 Docs</router-link>
         </div>
       </div>
     </nav>
