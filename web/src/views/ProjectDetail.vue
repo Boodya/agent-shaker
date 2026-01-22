@@ -56,34 +56,20 @@
         <div v-if="activeTab === 'agents'" class="py-6">
           <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-semibold text-gray-900">Project Agents</h3>
-            <button @click="showAddAgentModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
+            <button @click="openAddAgentModal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
               + Add Agent
             </button>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="agent in agents" :key="agent.id" class="bg-white p-6 rounded-lg shadow-sm">
-              <div class="flex justify-between items-start mb-4">
-                <h4 class="text-lg font-semibold text-gray-900">{{ agent.name }}</h4>
-                <div class="flex items-center gap-2">
-                  <button @click="openMcpSetup(agent)" class="p-1.5 text-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors" title="Download MCP Setup">
-                    ⚙️
-                  </button>
-                  <span :class=" [
-                    'px-3 py-1 rounded-full text-sm font-semibold',
-                    agent.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  ]">{{ agent.status }}</span>
-                </div>
-              </div>
-              <div class="space-y-2">
-                <p class="text-gray-600"><strong class="font-medium text-gray-900">Role:</strong> <span :class=" [
-                  'inline-block px-2 py-1 rounded text-xs font-semibold',
-                  agent.role === 'frontend' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
-                ]">{{ agent.role }}</span></p>
-                <p class="text-gray-600"><strong class="font-medium text-gray-900">Team:</strong> {{ agent.team }}</p>
-                <p class="text-gray-600"><strong class="font-medium text-gray-900">Last Seen:</strong> {{ formatDate(agent.last_seen) }}</p>
-              </div>
-            </div>
+            <AgentCard 
+              v-for="agent in agents" 
+              :key="agent.id"
+              :agent="agent"
+              @setup="openMcpSetup"
+              @edit="editAgent"
+              @delete="confirmDeleteAgent"
+            />
           </div>
 
           <div v-if="agents.length === 0" class="text-center py-12 text-gray-500">
@@ -189,31 +175,41 @@
       </div>
     </div>
 
-    <!-- Add Agent Modal -->
-    <div v-if="showAddAgentModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showAddAgentModal = false">
+    <!-- Add/Edit Agent Modal -->
+    <div v-if="showAddAgentModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeAgentModal">
       <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-        <h3 class="text-xl font-semibold mb-6">Add Agent to Project</h3>
-        <form @submit.prevent="handleAddAgent">
+        <h3 class="text-xl font-semibold mb-6">{{ editingAgent ? 'Edit Agent' : 'Add Agent to Project' }}</h3>
+        <form @submit.prevent="handleSaveAgent">
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Agent Name</label>
-            <input v-model="newAgent.name" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+            <input v-model="agentForm.name" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
           </div>
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
-            <select v-model="newAgent.role" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            <select v-model="agentForm.role" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
               <option value="frontend">Frontend</option>
               <option value="backend">Backend</option>
             </select>
           </div>
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Team</label>
-            <input v-model="newAgent.team" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input v-model="agentForm.team" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div v-if="editingAgent" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select v-model="agentForm.status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="active">Active</option>
+              <option value="idle">Idle</option>
+              <option value="offline">Offline</option>
+            </select>
           </div>
           <div class="flex justify-end gap-3 mt-6">
-            <button type="button" @click="showAddAgentModal = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
+            <button type="button" @click="closeAgentModal" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
               Cancel
             </button>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">Add Agent</button>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
+              {{ editingAgent ? 'Update' : 'Add' }} Agent
+            </button>
           </div>
         </form>
       </div>
@@ -357,6 +353,23 @@
       </div>
     </div>
 
+    <!-- Delete Agent Confirmation Modal -->
+    <div v-if="showDeleteAgentConfirm" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showDeleteAgentConfirm = false">
+      <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
+        <h3 class="text-xl font-semibold mb-4 text-red-600">⚠️ Delete Agent</h3>
+        <p class="text-gray-600 mb-2">Are you sure you want to delete the agent "{{ deletingAgent?.name }}"?</p>
+        <p class="text-sm text-orange-600 mb-6">⚠️ This will also affect any tasks assigned to this agent.</p>
+        <div class="flex justify-end gap-3">
+          <button @click="showDeleteAgentConfirm = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
+            Cancel
+          </button>
+          <button @click="handleDeleteAgent" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
+            Delete Agent
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- MCP Setup Modal -->
     <div v-if="showMcpSetupModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showMcpSetupModal = false">
       <div class="bg-white p-6 rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -464,9 +477,13 @@ import { useContextStore } from '../stores/contextStore'
 import { useWebSocket } from '../composables/useWebSocket'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import AgentCard from '../components/AgentCard.vue'
 
 export default {
   name: 'ProjectDetail',
+  components: {
+    AgentCard
+  },
   setup() {
     const route = useRoute()
     const projectStore = useProjectStore()
@@ -481,10 +498,13 @@ export default {
     const showAddContextModal = ref(false)
     const showViewContextModal = ref(false)
     const showDeleteConfirm = ref(false)
+    const showDeleteAgentConfirm = ref(false)
     const showMcpSetupModal = ref(false)
     const mcpSetupAgent = ref(null)
 
-    const newAgent = ref({ name: '', role: 'frontend', team: '' })
+    const agentForm = ref({ name: '', role: 'frontend', team: '', status: 'active' })
+    const editingAgent = ref(null)
+    const deletingAgent = ref(null)
     const newTask = ref({ title: '', description: '', agent_id: '', priority: 'medium' })
     
     const contextForm = ref({
@@ -783,16 +803,67 @@ get_project_contexts() {
       disconnect()
     })
 
-    const handleAddAgent = async () => {
+    // Agent management functions
+    const openAddAgentModal = () => {
+      editingAgent.value = null
+      agentForm.value = { name: '', role: 'frontend', team: '', status: 'active' }
+      showAddAgentModal.value = true
+    }
+
+    const editAgent = (agent) => {
+      editingAgent.value = agent
+      agentForm.value = {
+        name: agent.name,
+        role: agent.role,
+        team: agent.team || '',
+        status: agent.status || 'active'
+      }
+      showAddAgentModal.value = true
+    }
+
+    const closeAgentModal = () => {
+      showAddAgentModal.value = false
+      editingAgent.value = null
+      agentForm.value = { name: '', role: 'frontend', team: '', status: 'active' }
+    }
+
+    const handleSaveAgent = async () => {
       try {
-        await agentStore.createAgent({
-          ...newAgent.value,
-          project_id: route.params.id
-        })
-        showAddAgentModal.value = false
-        newAgent.value = { name: '', role: 'frontend', team: '' }
+        if (editingAgent.value) {
+          // Update existing agent
+          await agentStore.updateAgent(editingAgent.value.id, {
+            name: agentForm.value.name,
+            role: agentForm.value.role,
+            team: agentForm.value.team,
+            status: agentForm.value.status
+          })
+        } else {
+          // Create new agent
+          await agentStore.createAgent({
+            name: agentForm.value.name,
+            role: agentForm.value.role,
+            team: agentForm.value.team,
+            project_id: route.params.id
+          })
+        }
+        closeAgentModal()
       } catch (error) {
-        console.error('Failed to add agent:', error)
+        console.error('Failed to save agent:', error)
+      }
+    }
+
+    const confirmDeleteAgent = (agent) => {
+      deletingAgent.value = agent
+      showDeleteAgentConfirm.value = true
+    }
+
+    const handleDeleteAgent = async () => {
+      try {
+        await agentStore.deleteAgent(deletingAgent.value.id)
+        showDeleteAgentConfirm.value = false
+        deletingAgent.value = null
+      } catch (error) {
+        console.error('Failed to delete agent:', error)
       }
     }
 
@@ -991,9 +1062,12 @@ get_project_contexts() {
       showAddContextModal,
       showViewContextModal,
       showDeleteConfirm,
+      showDeleteAgentConfirm,
       showMcpSetupModal,
       mcpSetupAgent,
-      newAgent,
+      agentForm,
+      editingAgent,
+      deletingAgent,
       newTask,
       contextForm,
       editingContext,
@@ -1007,7 +1081,12 @@ get_project_contexts() {
       mcpCopilotInstructions,
       mcpPowerShellScript,
       mcpBashScript,
-      handleAddAgent,
+      openAddAgentModal,
+      editAgent,
+      closeAgentModal,
+      handleSaveAgent,
+      confirmDeleteAgent,
+      handleDeleteAgent,
       handleAddTask,
       handleSaveContext,
       viewContext,
