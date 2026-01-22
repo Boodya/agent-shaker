@@ -200,379 +200,93 @@
     </div>
 
     <!-- Add/Edit Agent Modal -->
-    <div v-if="showAddAgentModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeAgentModal">
-      <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-        <h3 class="text-xl font-semibold mb-6">{{ editingAgent ? 'Edit Agent' : 'Add Agent to Project' }}</h3>
-        <form @submit.prevent="handleSaveAgent">
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Agent Name</label>
-            <input v-model="agentForm.name" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
-            <select v-model="agentForm.role" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <optgroup label="Development Roles">
-                <option value="frontend">Frontend Developer</option>
-                <option value="backend">Backend Developer</option>
-                <option value="fullstack">Full Stack Developer</option>
-                <option value="mobile">Mobile Developer</option>
-                <option value="devops">DevOps Engineer</option>
-                <option value="qa">QA Engineer</option>
-                <option value="security">Security Engineer</option>
-              </optgroup>
-              <optgroup label="Agile Roles">
-                <option value="product-owner">Product Owner</option>
-                <option value="scrum-master">Scrum Master</option>
-                <option value="agile-coach">Agile Coach</option>
-              </optgroup>
-              <optgroup label="R&D Roles">
-                <option value="architect">Solution Architect</option>
-                <option value="tech-lead">Tech Lead</option>
-                <option value="researcher">Research Engineer</option>
-                <option value="data-scientist">Data Scientist</option>
-                <option value="ml-engineer">ML Engineer</option>
-              </optgroup>
-              <optgroup label="Design & UX">
-                <option value="ux-designer">UX Designer</option>
-                <option value="ui-designer">UI Designer</option>
-                <option value="ux-researcher">UX Researcher</option>
-              </optgroup>
-            </select>
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Team</label>
-            <input v-model="agentForm.team" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div v-if="editingAgent" class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <select v-model="agentForm.status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="active">Active</option>
-              <option value="idle">Idle</option>
-              <option value="offline">Offline</option>
-            </select>
-          </div>
-          <div class="flex justify-end gap-3 mt-6">
-            <button type="button" @click="closeAgentModal" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
-              Cancel
-            </button>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-              {{ editingAgent ? 'Update' : 'Add' }} Agent
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <AgentModal 
+      :show="showAddAgentModal"
+      :agent="editingAgent"
+      @close="showAddAgentModal = false"
+      @save="handleSaveAgent"
+    />
 
     <!-- Add/Edit Task Modal -->
-    <div v-if="showAddTaskModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeTaskModal">
-      <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-        <h3 class="text-xl font-semibold mb-6">{{ editingTask ? 'Edit Task' : 'Create New Task' }}</h3>
-        <form @submit.prevent="handleSaveTask">
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Task Title</label>
-            <input v-model="taskForm.title" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea v-model="taskForm.description" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Assign to Agent</label>
-            <select v-model="taskForm.agent_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <option value="">Select an agent</option>
-              <option v-for="agent in agents" :key="agent.id" :value="agent.id">
-                {{ agent.name }}
-              </option>
-            </select>
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-            <select v-model="taskForm.priority" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-          <div v-if="editingTask" class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <select v-model="taskForm.status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="done">Done</option>
-              <option value="blocked">Blocked</option>
-            </select>
-          </div>
-          <div class="flex justify-end gap-3 mt-6">
-            <button type="button" @click="closeTaskModal" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
-              Cancel
-            </button>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-              {{ editingTask ? 'Update' : 'Create' }} Task
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <TaskModal 
+      :show="showAddTaskModal"
+      :task="editingTask"
+      :agents="agents"
+      @close="showAddTaskModal = false"
+      @save="handleSaveTask"
+    />
 
-    <!-- Add Context Modal -->
-    <div v-if="showAddContextModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeContextModal">
-      <div class="bg-white p-6 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-xl font-semibold mb-6">{{ editingContext ? 'Edit Context' : 'Add Context / Documentation' }}</h3>
-        <form @submit.prevent="handleSaveContext">
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
-            <input v-model="contextForm.title" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Agent</label>
-            <select v-model="contextForm.agent_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <option value="">Select an agent</option>
-              <option v-for="agent in agents" :key="agent.id" :value="agent.id">
-                {{ agent.name }}
-              </option>
-            </select>
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Related Task (Optional)</label>
-            <select v-model="contextForm.task_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">None</option>
-              <option v-for="task in tasks" :key="task.id" :value="task.id">
-                {{ task.title }}
-              </option>
-            </select>
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Content (Markdown)</label>
-            <textarea 
-              v-model="contextForm.content" 
-              rows="12" 
-              placeholder="Write your documentation in Markdown format..."
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            ></textarea>
-            <small class="text-gray-500 text-sm">Supports Markdown: **bold**, *italic*, [link](url), etc.</small>
-          </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tags (comma-separated)</label>
-            <input 
-              v-model="contextForm.tagsString" 
-              type="text" 
-              placeholder="api, documentation, backend"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div class="flex justify-end gap-3 mt-6">
-            <button type="button" @click="closeContextModal" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
-              Cancel
-            </button>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-              {{ editingContext ? 'Update' : 'Create' }} Context
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <!-- Add/Edit Context Modal -->
+    <ContextModal 
+      :show="showAddContextModal"
+      :context="editingContext"
+      :agents="agents"
+      :tasks="tasks"
+      @close="showAddContextModal = false"
+      @save="handleSaveContext"
+    />
 
     <!-- View Context Modal -->
-    <div v-if="showViewContextModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showViewContextModal = false">
-      <div class="bg-white p-6 rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-start mb-6">
-          <h3 class="text-xl font-semibold text-gray-900">{{ viewingContext?.title }}</h3>
-          <button @click="showViewContextModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
-        </div>
-        <div>
-          <div class="flex justify-between items-center mb-6">
-            <div class="flex flex-wrap gap-2">
-              <span v-for="tag in viewingContext?.tags" :key="tag" class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">{{ tag }}</span>
-            </div>
-            <div class="flex gap-4 text-sm text-gray-500">
-              <span>Agent: {{ getAgentName(viewingContext?.agent_id) }}</span>
-              <span v-if="viewingContext?.task_id">Task: {{ getTaskTitle(viewingContext?.task_id) }}</span>
-              <span>{{ formatDate(viewingContext?.created_at) }}</span>
-            </div>
-          </div>
-          <div class="prose max-w-none" v-html="renderMarkdown(viewingContext?.content)"></div>
-        </div>
-      </div>
-    </div>
+    <ContextViewer
+      :show="showViewContextModal"
+      :context="viewingContext"
+      :agent-name="getAgentName(agents, viewingContext?.agent_id)"
+      :task-name="viewingContext?.task_id ? getTaskTitle(tasks, viewingContext.task_id) : ''"
+      @close="showViewContextModal = false"
+    />
 
-    <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showDeleteConfirm = false">
-      <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
-        <h3 class="text-xl font-semibold mb-4 text-red-600">⚠️ Confirm Delete</h3>
-        <p class="text-gray-600 mb-6">Are you sure you want to delete the context "{{ deletingContext?.title }}"?</p>
-        <div class="flex justify-end gap-3">
-          <button @click="showDeleteConfirm = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
-            Cancel
-          </button>
-          <button @click="handleDeleteContext" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Delete Context Confirmation -->
+    <ConfirmModal
+      :show="showDeleteConfirm"
+      title="Confirm Delete"
+      :message="`Are you sure you want to delete the context &quot;${deletingContext?.title}&quot;?`"
+      confirm-text="Delete"
+      @close="showDeleteConfirm = false"
+      @confirm="handleDeleteContext"
+    />
 
-    <!-- Delete Agent Confirmation Modal -->
-    <div v-if="showDeleteAgentConfirm" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showDeleteAgentConfirm = false">
-      <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
-        <h3 class="text-xl font-semibold mb-4 text-red-600">⚠️ Delete Agent</h3>
-        <p class="text-gray-600 mb-2">Are you sure you want to delete the agent "{{ deletingAgent?.name }}"?</p>
-        <p class="text-sm text-orange-600 mb-6">⚠️ This will also affect any tasks assigned to this agent.</p>
-        <div class="flex justify-end gap-3">
-          <button @click="showDeleteAgentConfirm = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
-            Cancel
-          </button>
-          <button @click="handleDeleteAgent" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-            Delete Agent
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Delete Agent Confirmation -->
+    <ConfirmModal
+      :show="showDeleteAgentConfirm"
+      title="Delete Agent"
+      :message="`Are you sure you want to delete the agent &quot;${deletingAgent?.name}&quot;?`"
+      warning="This will also affect any tasks assigned to this agent."
+      confirm-text="Delete Agent"
+      @close="showDeleteAgentConfirm = false"
+      @confirm="handleDeleteAgent"
+    />
 
-    <!-- Delete Task Confirmation Modal -->
-    <div v-if="showDeleteTaskConfirm" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showDeleteTaskConfirm = false">
-      <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
-        <h3 class="text-xl font-semibold mb-4 text-red-600">⚠️ Delete Task</h3>
-        <p class="text-gray-600 mb-2">Are you sure you want to delete the task "{{ deletingTask?.title }}"?</p>
-        <p class="text-sm text-orange-600 mb-6">⚠️ This will also delete any related contexts.</p>
-        <div class="flex justify-end gap-3">
-          <button @click="showDeleteTaskConfirm = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
-            Cancel
-          </button>
-          <button @click="handleDeleteTask" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-            Delete Task
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Delete Task Confirmation -->
+    <ConfirmModal
+      :show="showDeleteTaskConfirm"
+      title="Delete Task"
+      :message="`Are you sure you want to delete the task &quot;${deletingTask?.title}&quot;?`"
+      warning="This will also delete any related contexts."
+      confirm-text="Delete Task"
+      @close="showDeleteTaskConfirm = false"
+      @confirm="handleDeleteTask"
+    />
 
     <!-- MCP Setup Modal -->
-    <div v-if="showMcpSetupModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showMcpSetupModal = false">
-      <div class="bg-white p-6 rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-start mb-6">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center">
-              <span class="text-white text-lg">⚙️</span>
-            </div>
-            <div>
-              <h3 class="text-xl font-semibold text-gray-900">MCP Setup Files</h3>
-              <p class="text-sm text-gray-500">Configure your IDE for agent: {{ mcpSetupAgent?.name }}</p>
-            </div>
-          </div>
-          <button @click="showMcpSetupModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
-        </div>
-        <div class="space-y-6">
-          <!-- Quick Setup -->
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 class="font-semibold text-blue-900 mb-2">🚀 Quick Setup</h4>
-            <p class="text-sm text-blue-800 mb-3">Download all files and extract to your project's root folder:</p>
-            <button @click="downloadAllMcpFiles" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2">
-              <span>📦</span> Download All Setup Files (.zip)
-            </button>
-          </div>
+    <McpSetupModal
+      :show="showMcpSetupModal"
+      :agent="mcpSetupAgent"
+      :mcp-config="mcpConfig"
+      @close="showMcpSetupModal = false"
+      @download-file="downloadMcpFile"
+      @download-all="handleDownloadAllMcpFiles"
+    />
 
-          <!-- VS Code Settings -->
-          <div class="border border-gray-200 rounded-lg overflow-hidden">
-            <div class="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-200">
-              <div>
-                <h4 class="font-semibold text-gray-900">.vscode/settings.json</h4>
-                <p class="text-xs text-gray-500">Environment variables for your workspace</p>
-              </div>
-              <button @click="downloadMcpFile('settings')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1">
-                <span>📥</span> Download
-              </button>
-            </div>
-            <pre class="p-4 bg-gray-900 text-green-400 text-sm overflow-x-auto max-h-48"><code>{{ mcpSettingsJson }}</code></pre>
-          </div>
-
-          <!-- MCP Configuration -->
-          <div class="border border-blue-200 bg-blue-50/30 rounded-lg overflow-hidden">
-            <div class="bg-blue-100 px-4 py-3 flex justify-between items-center border-b border-blue-200">
-              <div>
-                <h4 class="font-semibold text-blue-900 flex items-center gap-2">
-                  <span>🔗</span> .vscode/mcp.json
-                  <span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Enhanced</span>
-                </h4>
-                <p class="text-xs text-blue-700">Comprehensive MCP server configuration for VS Code with agent, project, and tool definitions</p>
-              </div>
-              <button @click="downloadMcpFile('mcp')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1">
-                <span>📥</span> Download
-              </button>
-            </div>
-            <pre class="p-4 bg-gray-900 text-green-400 text-sm overflow-x-auto max-h-64"><code>{{ mcpVSCodeJson }}</code></pre>
-          </div>
-
-          <!-- GitHub Copilot Instructions -->
-          <div class="border border-gray-200 rounded-lg overflow-hidden">
-            <div class="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-200">
-              <div>
-                <h4 class="font-semibold text-gray-900">.github/copilot-instructions.md</h4>
-                <p class="text-xs text-gray-500">Instructions for GitHub Copilot agent identity</p>
-              </div>
-              <button @click="downloadMcpFile('copilot')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1">
-                <span>📥</span> Download
-              </button>
-            </div>
-            <pre class="p-4 bg-gray-900 text-green-400 text-sm overflow-x-auto max-h-48"><code>{{ mcpCopilotInstructions }}</code></pre>
-          </div>
-
-          <!-- PowerShell Helper Script -->
-          <div class="border border-gray-200 rounded-lg overflow-hidden">
-            <div class="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-200">
-              <div>
-                <h4 class="font-semibold text-gray-900">scripts/mcp-agent.ps1</h4>
-                <p class="text-xs text-gray-500">PowerShell helper script for API interactions</p>
-              </div>
-              <button @click="downloadMcpFile('powershell')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1">
-                <span>📥</span> Download
-              </button>
-            </div>
-            <pre class="p-4 bg-gray-900 text-green-400 text-sm overflow-x-auto max-h-48"><code>{{ mcpPowerShellScript }}</code></pre>
-          </div>
-
-          <!-- Bash Helper Script -->
-          <div class="border border-gray-200 rounded-lg overflow-hidden">
-            <div class="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-200">
-              <div>
-                <h4 class="font-semibold text-gray-900">scripts/mcp-agent.sh</h4>
-                <p class="text-xs text-gray-500">Bash helper script for Linux/Mac</p>
-              </div>
-              <button @click="downloadMcpFile('bash')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1">
-                <span>📥</span> Download
-              </button>
-            </div>
-            <pre class="p-4 bg-gray-900 text-green-400 text-sm overflow-x-auto max-h-48"><code>{{ mcpBashScript }}</code></pre>
-          </div>
-        </div>
-
-        <div class="mt-6 pt-4 border-t border-gray-200">
-          <h4 class="font-semibold text-gray-900 mb-2">📖 Setup Instructions</h4>
-          <ol class="list-decimal list-inside text-sm text-gray-600 space-y-2">
-            <li>Download the setup files using the buttons above or the "Download All" option</li>
-            <li>Extract/copy the files to your project's root directory</li>
-            <li>Restart VS Code to apply the environment variables</li>
-            <li>Start using Copilot with your agent identity!</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete Project Confirmation Modal -->
-    <div v-if="showDeleteProjectConfirm" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showDeleteProjectConfirm = false">
-      <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-        <h3 class="text-xl font-semibold mb-4 text-red-600">⚠️ Delete Project</h3>
-        <p class="text-gray-600 mb-2">Are you sure you want to permanently delete the project "<strong>{{ project?.name }}</strong>"?</p>
-        <p class="text-sm text-orange-600 mb-6">⚠️ This action cannot be undone. All agents, tasks, and contexts will be deleted.</p>
-        <div class="flex justify-end gap-3">
-          <button @click="showDeleteProjectConfirm = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
-            Cancel
-          </button>
-          <button @click="handleDeleteProject" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-            Delete Project
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Delete Project Confirmation -->
+    <ConfirmModal
+      :show="showDeleteProjectConfirm"
+      title="Delete Project"
+      :message="`Are you sure you want to permanently delete the project &quot;${project?.name}&quot;?`"
+      warning="This action cannot be undone. All agents, tasks, and contexts will be deleted."
+      confirm-text="Delete Project"
+      @close="showDeleteProjectConfirm = false"
+      @confirm="handleDeleteProject"
+    />
   </div>
 </template>
 
@@ -584,16 +298,29 @@ import { useAgentStore } from '../stores/agentStore'
 import { useTaskStore } from '../stores/taskStore'
 import { useContextStore } from '../stores/contextStore'
 import { useWebSocket } from '../composables/useWebSocket'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 import AgentCard from '../components/AgentCard.vue'
 import TaskCard from '../components/TaskCard.vue'
+import AgentModal from '../components/AgentModal.vue'
+import TaskModal from '../components/TaskModal.vue'
+import ContextModal from '../components/ContextModal.vue'
+import ContextViewer from '../components/ContextViewer.vue'
+import ConfirmModal from '../components/ConfirmModal.vue'
+import McpSetupModal from '../components/McpSetupModal.vue'
+import { formatDate, getUniqueTags } from '../utils/formatters'
+import { getAgentName, getTaskTitle, filterContexts } from '../utils/dataHelpers'
+import { useMcpSetup, downloadFile, downloadAllMcpFiles } from '../composables/useMcpSetup'
 
 export default {
   name: 'ProjectDetail',
   components: {
     AgentCard,
-    TaskCard
+    TaskCard,
+    AgentModal,
+    TaskModal,
+    ContextModal,
+    ContextViewer,
+    ConfirmModal,
+    McpSetupModal
   },
   setup() {
     const route = useRoute()
@@ -1168,47 +895,26 @@ get_project_contexts() {
     // Agent management functions
     const openAddAgentModal = () => {
       editingAgent.value = null
-      agentForm.value = { name: '', role: 'frontend', team: '', status: 'active' }
       showAddAgentModal.value = true
     }
 
     const editAgent = (agent) => {
       editingAgent.value = agent
-      agentForm.value = {
-        name: agent.name,
-        role: agent.role,
-        team: agent.team || '',
-        status: agent.status || 'active'
-      }
       showAddAgentModal.value = true
     }
 
-    const closeAgentModal = () => {
-      showAddAgentModal.value = false
-      editingAgent.value = null
-      agentForm.value = { name: '', role: 'frontend', team: '', status: 'active' }
-    }
-
-    const handleSaveAgent = async () => {
+    const handleSaveAgent = async (agentData) => {
       try {
         if (editingAgent.value) {
-          // Update existing agent
-          await agentStore.updateAgent(editingAgent.value.id, {
-            name: agentForm.value.name,
-            role: agentForm.value.role,
-            team: agentForm.value.team,
-            status: agentForm.value.status
-          })
+          await agentStore.updateAgent(editingAgent.value.id, agentData)
         } else {
-          // Create new agent
           await agentStore.createAgent({
-            name: agentForm.value.name,
-            role: agentForm.value.role,
-            team: agentForm.value.team,
+            ...agentData,
             project_id: route.params.id
           })
         }
-        closeAgentModal()
+        showAddAgentModal.value = false
+        editingAgent.value = null
       } catch (error) {
         console.error('Failed to save agent:', error)
       }
@@ -1229,69 +935,29 @@ get_project_contexts() {
       }
     }
 
+    // Task management functions
     const openAddTaskModal = () => {
-      taskForm.value = {
-        title: '',
-        description: '',
-        agent_id: '',
-        priority: 'medium',
-        status: 'pending'
-      }
       editingTask.value = null
       showAddTaskModal.value = true
     }
 
     const editTask = (task) => {
-      taskForm.value = {
-        title: task.title,
-        description: task.description || '',
-        agent_id: task.agent_id,
-        priority: task.priority,
-        status: task.status
-      }
       editingTask.value = task
       showAddTaskModal.value = true
     }
 
-    const closeTaskModal = () => {
-      showAddTaskModal.value = false
-      editingTask.value = null
-      taskForm.value = {
-        title: '',
-        description: '',
-        agent_id: '',
-        priority: 'medium',
-        status: 'pending'
-      }
-    }
-
-    const handleSaveTask = async () => {
-      if (!taskForm.value.title.trim() || !taskForm.value.agent_id) {
-        alert('Please fill in all required fields')
-        return
-      }
-
+    const handleSaveTask = async (taskData) => {
       try {
         if (editingTask.value) {
-          // Update existing task
-          await taskStore.updateTask(editingTask.value.id, {
-            title: taskForm.value.title,
-            description: taskForm.value.description,
-            agent_id: taskForm.value.agent_id,
-            priority: taskForm.value.priority,
-            status: taskForm.value.status
-          })
+          await taskStore.updateTask(editingTask.value.id, taskData)
         } else {
-          // Create new task
           await taskStore.createTask({
-            project_id: projectStore.currentProject.id,
-            title: taskForm.value.title,
-            description: taskForm.value.description,
-            agent_id: taskForm.value.agent_id,
-            priority: taskForm.value.priority
+            ...taskData,
+            project_id: route.params.id
           })
         }
-        closeTaskModal()
+        showAddTaskModal.value = false
+        editingTask.value = null
       } catch (error) {
         console.error('Failed to save task:', error)
         alert('Failed to save task. Please try again.')
