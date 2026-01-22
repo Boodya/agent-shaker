@@ -56,7 +56,7 @@
       </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24 sm:pb-28">
       <router-view v-slot="{ Component }">
         <transition name="page" mode="out-in">
           <component :is="Component" />
@@ -64,7 +64,7 @@
       </router-view>
     </main>
 
-    <footer class="bg-white/50 backdrop-blur-sm border-t border-slate-200 py-6 sm:py-8 mt-12 sm:mt-16">
+    <footer class="fixed bottom-0 left-0 right-0 bg-white/50 backdrop-blur-sm border-t border-slate-200 py-4 sm:py-6 -z-10">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
           <div class="flex items-center gap-2">
