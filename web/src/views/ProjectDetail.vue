@@ -81,35 +81,20 @@
         <div v-if="activeTab === 'tasks'" class="py-6">
           <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-semibold text-gray-900">Project Tasks</h3>
-            <button @click="showAddTaskModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
+            <button @click="openAddTaskModal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
               + Create Task
             </button>
           </div>
 
           <div class="space-y-4">
-            <div v-for="task in tasks" :key="task.id" class="bg-white p-6 rounded-lg shadow-sm">
-              <div class="flex justify-between items-start mb-3">
-                <h4 class="text-lg font-semibold text-gray-900">{{ task.title }}</h4>
-                <div class="flex gap-2">
-                  <span :class=" [
-                    'px-2 py-1 rounded text-xs font-semibold',
-                    task.priority === 'high' ? 'bg-red-100 text-red-800' : 
-                    task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
-                  ]">{{ task.priority }}</span>
-                  <span :class=" [
-                    'px-2 py-1 rounded text-xs font-semibold',
-                    task.status === 'done' ? 'bg-green-100 text-green-800' : 
-                    task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
-                    task.status === 'pending' ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800'
-                  ]">{{ task.status }}</span>
-                </div>
-              </div>
-              <p class="text-gray-600 mb-4">{{ task.description }}</p>
-              <div class="flex justify-between text-sm text-gray-500">
-                <span>Agent: {{ getAgentName(task.agent_id) }}</span>
-                <span>Created {{ formatDate(task.created_at) }}</span>
-              </div>
-            </div>
+            <TaskCard
+              v-for="task in tasks"
+              :key="task.id"
+              :task="task"
+              :agent-name="getAgentName(task.agent_id)"
+              @edit="editTask"
+              @delete="confirmDeleteTask"
+            />
           </div>
 
           <div v-if="tasks.length === 0" class="text-center py-12 text-gray-500">
@@ -239,22 +224,22 @@
       </div>
     </div>
 
-    <!-- Add Task Modal -->
-    <div v-if="showAddTaskModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showAddTaskModal = false">
+    <!-- Add/Edit Task Modal -->
+    <div v-if="showAddTaskModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeTaskModal">
       <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-        <h3 class="text-xl font-semibold mb-6">Create New Task</h3>
-        <form @submit.prevent="handleAddTask">
+        <h3 class="text-xl font-semibold mb-6">{{ editingTask ? 'Edit Task' : 'Create New Task' }}</h3>
+        <form @submit.prevent="handleSaveTask">
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Task Title</label>
-            <input v-model="newTask.title" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+            <input v-model="taskForm.title" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
           </div>
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea v-model="newTask.description" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <textarea v-model="taskForm.description" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
           </div>
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Assign to Agent</label>
-            <select v-model="newTask.agent_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            <select v-model="taskForm.agent_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
               <option value="">Select an agent</option>
               <option v-for="agent in agents" :key="agent.id" :value="agent.id">
                 {{ agent.name }}
@@ -263,17 +248,28 @@
           </div>
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-            <select v-model="newTask.priority" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select v-model="taskForm.priority" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
           </div>
+          <div v-if="editingTask" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select v-model="taskForm.status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="done">Done</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </div>
           <div class="flex justify-end gap-3 mt-6">
-            <button type="button" @click="showAddTaskModal = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
+            <button type="button" @click="closeTaskModal" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
               Cancel
             </button>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">Create Task</button>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
+              {{ editingTask ? 'Update' : 'Create' }} Task
+            </button>
           </div>
         </form>
       </div>
@@ -394,6 +390,23 @@
       </div>
     </div>
 
+    <!-- Delete Task Confirmation Modal -->
+    <div v-if="showDeleteTaskConfirm" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showDeleteTaskConfirm = false">
+      <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
+        <h3 class="text-xl font-semibold mb-4 text-red-600">⚠️ Delete Task</h3>
+        <p class="text-gray-600 mb-2">Are you sure you want to delete the task "{{ deletingTask?.title }}"?</p>
+        <p class="text-sm text-orange-600 mb-6">⚠️ This will also delete any related contexts.</p>
+        <div class="flex justify-end gap-3">
+          <button @click="showDeleteTaskConfirm = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors">
+            Cancel
+          </button>
+          <button @click="handleDeleteTask" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
+            Delete Task
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- MCP Setup Modal -->
     <div v-if="showMcpSetupModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showMcpSetupModal = false">
       <div class="bg-white p-6 rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -502,11 +515,13 @@ import { useWebSocket } from '../composables/useWebSocket'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import AgentCard from '../components/AgentCard.vue'
+import TaskCard from '../components/TaskCard.vue'
 
 export default {
   name: 'ProjectDetail',
   components: {
-    AgentCard
+    AgentCard,
+    TaskCard
   },
   setup() {
     const route = useRoute()
@@ -523,12 +538,23 @@ export default {
     const showViewContextModal = ref(false)
     const showDeleteConfirm = ref(false)
     const showDeleteAgentConfirm = ref(false)
+    const showDeleteTaskConfirm = ref(false)
     const showMcpSetupModal = ref(false)
     const mcpSetupAgent = ref(null)
 
     const agentForm = ref({ name: '', role: 'frontend', team: '', status: 'active' })
     const editingAgent = ref(null)
     const deletingAgent = ref(null)
+    
+    const taskForm = ref({
+      title: '',
+      description: '',
+      agent_id: '',
+      priority: 'medium',
+      status: 'pending'
+    })
+    const editingTask = ref(null)
+    const deletingTask = ref(null)
     const newTask = ref({ title: '', description: '', agent_id: '', priority: 'medium' })
     
     const contextForm = ref({
@@ -891,6 +917,93 @@ get_project_contexts() {
       }
     }
 
+    const openAddTaskModal = () => {
+      taskForm.value = {
+        title: '',
+        description: '',
+        agent_id: '',
+        priority: 'medium',
+        status: 'pending'
+      }
+      editingTask.value = null
+      showAddTaskModal.value = true
+    }
+
+    const editTask = (task) => {
+      taskForm.value = {
+        title: task.title,
+        description: task.description || '',
+        agent_id: task.agent_id,
+        priority: task.priority,
+        status: task.status
+      }
+      editingTask.value = task
+      showAddTaskModal.value = true
+    }
+
+    const closeTaskModal = () => {
+      showAddTaskModal.value = false
+      editingTask.value = null
+      taskForm.value = {
+        title: '',
+        description: '',
+        agent_id: '',
+        priority: 'medium',
+        status: 'pending'
+      }
+    }
+
+    const handleSaveTask = async () => {
+      if (!taskForm.value.title.trim() || !taskForm.value.agent_id) {
+        alert('Please fill in all required fields')
+        return
+      }
+
+      try {
+        if (editingTask.value) {
+          // Update existing task
+          await taskStore.updateTask(editingTask.value.id, {
+            title: taskForm.value.title,
+            description: taskForm.value.description,
+            agent_id: taskForm.value.agent_id,
+            priority: taskForm.value.priority,
+            status: taskForm.value.status
+          })
+        } else {
+          // Create new task
+          await taskStore.createTask({
+            project_id: projectStore.currentProject.id,
+            title: taskForm.value.title,
+            description: taskForm.value.description,
+            agent_id: taskForm.value.agent_id,
+            priority: taskForm.value.priority
+          })
+        }
+        closeTaskModal()
+      } catch (error) {
+        console.error('Failed to save task:', error)
+        alert('Failed to save task. Please try again.')
+      }
+    }
+
+    const confirmDeleteTask = (task) => {
+      deletingTask.value = task
+      showDeleteTaskConfirm.value = true
+    }
+
+    const handleDeleteTask = async () => {
+      if (!deletingTask.value) return
+
+      try {
+        await taskStore.deleteTask(deletingTask.value.id)
+        showDeleteTaskConfirm.value = false
+        deletingTask.value = null
+      } catch (error) {
+        console.error('Failed to delete task:', error)
+        alert('Failed to delete task. Please try again.')
+      }
+    }
+
     const handleAddTask = async () => {
       try {
         await taskStore.createTask({
@@ -1087,11 +1200,15 @@ get_project_contexts() {
       showViewContextModal,
       showDeleteConfirm,
       showDeleteAgentConfirm,
+      showDeleteTaskConfirm,
       showMcpSetupModal,
       mcpSetupAgent,
       agentForm,
       editingAgent,
       deletingAgent,
+      taskForm,
+      editingTask,
+      deletingTask,
       newTask,
       contextForm,
       editingContext,
@@ -1111,6 +1228,12 @@ get_project_contexts() {
       handleSaveAgent,
       confirmDeleteAgent,
       handleDeleteAgent,
+      openAddTaskModal,
+      editTask,
+      closeTaskModal,
+      handleSaveTask,
+      confirmDeleteTask,
+      handleDeleteTask,
       handleAddTask,
       handleSaveContext,
       viewContext,
