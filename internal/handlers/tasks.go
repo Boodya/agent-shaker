@@ -111,11 +111,12 @@ func (h *TaskHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
 
 	status := r.URL.Query().Get("status")
 	if status != "" {
-		if argCount == 1 {
+		switch argCount {
+		case 1:
 			query += " AND status = $1"
-		} else if argCount == 2 {
+		case 2:
 			query += " AND status = $2"
-		} else {
+		default:
 			query += " AND status = $3"
 		}
 		args = append(args, status)

@@ -6,8 +6,14 @@
       
       <div v-else-if="project">
         <div class="flex justify-between items-start mb-8">
-          <div>
-            <h2 class="text-3xl font-bold text-gray-900">{{ project.name }}</h2>
+          <div class="flex-1">
+            <div class="flex items-center gap-4 mb-2">
+              <h2 class="text-3xl font-bold text-gray-900">{{ project.name }}</h2>
+              <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full">
+                <div :class="['w-2 h-2 rounded-full transition-colors duration-200', isConnected ? 'bg-green-500 animate-pulse' : 'bg-slate-400']"></div>
+                <span class="text-xs font-medium text-slate-600">{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
+              </div>
+            </div>
             <p class="text-gray-600 mt-2">{{ project.description }}</p>
           </div>
           <span :class=" [
@@ -367,7 +373,7 @@ export default {
     const agentStore = useAgentStore()
     const taskStore = useTaskStore()
     const contextStore = useContextStore()
-    const { connect, disconnect, on } = useWebSocket(route.params.id)
+    const { connect, disconnect, on, isConnected } = useWebSocket(route.params.id)
 
     const activeTab = ref('agents')
     const showAddAgentModal = ref(false)
@@ -587,6 +593,7 @@ export default {
       contexts,
       loading: projectStore.loading,
       error: projectStore.error,
+      isConnected,
       activeTab,
       showAddAgentModal,
       showAddTaskModal,
@@ -624,6 +631,19 @@ export default {
 .project-detail {
   min-height: 100vh;
   background: #f5f7fa;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .container {

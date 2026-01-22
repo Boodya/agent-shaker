@@ -3,19 +3,13 @@
     <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-soft">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col sm:flex-row justify-between items-center py-4 gap-3">
-          <div class="flex items-center gap-3 sm:gap-4">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span class="text-white font-bold text-sm">🚀</span>
-              </div>
-              <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                MCP Task Tracker
-              </h1>
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <span class="text-white font-bold text-sm">🚀</span>
             </div>
-            <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full">
-              <div :class="['w-2 h-2 rounded-full transition-colors duration-200', connectionStatus === 'online' ? 'bg-green-500 animate-pulse-slow' : 'bg-slate-400']"></div>
-              <span class="text-xs font-medium text-slate-600 capitalize">{{ connectionStatus }}</span>
-            </div>
+            <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              MCP Task Tracker
+            </h1>
           </div>
           <div class="flex flex-wrap justify-center gap-1 sm:gap-2">
             <router-link
@@ -88,31 +82,8 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useWebSocket } from './composables/useWebSocket'
-
 export default {
-  name: 'App',
-  setup() {
-    const connectionStatus = ref('offline')
-    const { connect, disconnect, isConnected } = useWebSocket()
-
-    onMounted(() => {
-      connect()
-      const checkConnection = setInterval(() => {
-        connectionStatus.value = isConnected.value ? 'online' : 'offline'
-      }, 1000)
-      
-      onUnmounted(() => {
-        clearInterval(checkConnection)
-        disconnect()
-      })
-    })
-
-    return {
-      connectionStatus
-    }
-  }
+  name: 'App'
 }
 </script>
 
