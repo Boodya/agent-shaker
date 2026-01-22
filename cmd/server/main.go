@@ -9,6 +9,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/techbuzzz/agent-shaker/internal/database"
 	"github.com/techbuzzz/agent-shaker/internal/handlers"
+	"github.com/techbuzzz/agent-shaker/internal/mcp"
 	"github.com/techbuzzz/agent-shaker/internal/middleware"
 	"github.com/techbuzzz/agent-shaker/internal/websocket"
 )
@@ -53,6 +54,7 @@ func main() {
 	contextHandler := handlers.NewContextHandler(db, hub)
 	wsHandler := handlers.NewWebSocketHandler(hub)
 	dashboardHandler := handlers.NewDashboardHandler(db)
+	mcpHandler := mcp.NewMCPHandler(db)
 
 	// Setup router
 	r := mux.NewRouter()
@@ -95,29 +97,16 @@ func main() {
 	// WebSocket
 	r.HandleFunc("/ws", wsHandler.HandleWebSocket)
 
+	// MCP Protocol endpoint (root level for VS Code)
+	r.HandleFunc("/", mcpHandler.HandleMCP).Methods("GET", "POST", "OPTIONS")
+	r.HandleFunc("/mcp", mcpHandler.HandleMCP).Methods("GET", "POST", "OPTIONS")
+	r.HandleFunc("/mcp/message", mcpHandler.HandleMCP).Methods("POST", "OPTIONS")
+
 	// Health check
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
-
-	// Root endpoint - API info (no Vue.js serving from Go)
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
-			"name": "MCP Multi-Agent Task Tracker API",
-			"version": "1.0.0",
-			"endpoints": {
-				"projects": "/api/projects",
-				"agents": "/api/agents",
-				"tasks": "/api/tasks",
-				"contexts": "/api/contexts",
-				"websocket": "/ws",
-				"health": "/health"
-			},
-			"repository": "https://github.com/techbuzzz/agent-shaker"
-		}`))
-	}).Methods("GET")
 
 	// Setup CORS for API routes only
 	c := cors.New(cors.Options{
@@ -135,6 +124,12 @@ func main() {
 			return
 		}
 
+		// MCP Protocol requests (root, /mcp, /mcp/message) - handle with CORS
+		if req.URL.Path == "/" || req.URL.Path == "/mcp" || len(req.URL.Path) >= 4 && req.URL.Path[:4] == "/mcp" {
+			c.Handler(http.HandlerFunc(mcpHandler.HandleMCP)).ServeHTTP(w, req)
+			return
+		}
+
 		// API routes get full middleware
 		if len(req.URL.Path) >= 4 && req.URL.Path[:4] == "/api" {
 			middleware.Recovery(
@@ -147,7 +142,7 @@ func main() {
 			return
 		}
 
-		// Other routes (health, root) get minimal middleware
+		// Other routes (health) get minimal middleware
 		middleware.Recovery(
 			middleware.Logger(
 				r,
@@ -163,6 +158,7 @@ func main() {
 
 	log.Printf("Server starting on port %s", port)
 	log.Println("MCP API Server - Endpoints:")
+	log.Println("  MCP:        http://localhost:" + port + "/ (Protocol endpoint)")
 	log.Println("  API:        http://localhost:" + port + "/api")
 	log.Println("  WebSocket:  ws://localhost:" + port + "/ws")
 	log.Println("  Health:     http://localhost:" + port + "/health")
