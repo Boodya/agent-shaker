@@ -195,3 +195,75 @@ func (h *AgentHandler) UpdateAgentStatus(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(agent)
 }
+
+func (h *AgentHandler) DeleteAgent(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "Invalid agent ID", http.StatusBadRequest)
+		return
+	}
+
+	// Begin transaction
+	tx, err := h.db.Begin()
+	if err != nil {
+		http.Error(w, "Failed to start transaction", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	// Get agent to retrieve project_id for WebSocket broadcast
+	var agent models.Agent
+	err = tx.QueryRow("SELECT id, project_id FROM agents WHERE id = $1", id).Scan(&agent.ID, &agent.ProjectID)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, "Failed to retrieve agent", http.StatusInternalServerError)
+		return
+	}
+
+	// Delete related contexts (they reference tasks which reference agents)
+	_, err = tx.Exec("DELETE FROM contexts WHERE task_id IN (SELECT id FROM tasks WHERE agent_id = $1)", id)
+	if err != nil {
+		http.Error(w, "Failed to delete related contexts", http.StatusInternalServerError)
+		return
+	}
+
+	// Delete related tasks
+	_, err = tx.Exec("DELETE FROM tasks WHERE agent_id = $1", id)
+	if err != nil {
+		http.Error(w, "Failed to delete related tasks", http.StatusInternalServerError)
+		return
+	}
+
+	// Delete the agent
+	result, err := tx.Exec("DELETE FROM agents WHERE id = $1", id)
+	if err != nil {
+		http.Error(w, "Failed to delete agent", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast agent deletion
+	h.hub.BroadcastToProject(agent.ProjectID, "agent_deleted", map[string]interface{}{
+		"agent_id":   id,
+		"project_id": agent.ProjectID,
+		"deleted_at": time.Now(),
+	})
+
+	w.WriteHeader(http.StatusNoContent)
+}

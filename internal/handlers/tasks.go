@@ -372,3 +372,68 @@ func (h *TaskHandler) UpdateTaskStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(task)
 }
+
+func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
+	}
+
+	// Begin transaction
+	tx, err := h.db.Begin()
+	if err != nil {
+		http.Error(w, "Failed to start transaction", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	// Get task to retrieve project_id for WebSocket broadcast
+	var task models.Task
+	err = tx.QueryRow("SELECT id, project_id FROM tasks WHERE id = $1", id).Scan(&task.ID, &task.ProjectID)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Task not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, "Failed to retrieve task", http.StatusInternalServerError)
+		return
+	}
+
+	// Delete related contexts first
+	_, err = tx.Exec("DELETE FROM contexts WHERE task_id = $1", id)
+	if err != nil {
+		http.Error(w, "Failed to delete related contexts", http.StatusInternalServerError)
+		return
+	}
+
+	// Delete the task
+	result, err := tx.Exec("DELETE FROM tasks WHERE id = $1", id)
+	if err != nil {
+		http.Error(w, "Failed to delete task", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		http.Error(w, "Task not found", http.StatusNotFound)
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast task deletion
+	h.hub.BroadcastToProject(task.ProjectID, "task_deleted", map[string]interface{}{
+		"task_id":    id,
+		"project_id": task.ProjectID,
+		"deleted_at": time.Now(),
+	})
+
+	w.WriteHeader(http.StatusNoContent)
+}

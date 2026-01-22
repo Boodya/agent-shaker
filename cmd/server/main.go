@@ -67,12 +67,14 @@ func main() {
 	api.HandleFunc("/projects", projectHandler.CreateProject).Methods("POST")
 	api.HandleFunc("/projects", projectHandler.ListProjects).Methods("GET")
 	api.HandleFunc("/projects/{id}", projectHandler.GetProject).Methods("GET")
+	api.HandleFunc("/projects/{id}", projectHandler.DeleteProject).Methods("DELETE")
 	api.HandleFunc("/projects/{id}/status", projectHandler.UpdateProjectStatus).Methods("PUT")
 
 	// Agents
 	api.HandleFunc("/agents", agentHandler.CreateAgent).Methods("POST")
 	api.HandleFunc("/agents", agentHandler.ListAgents).Methods("GET")
 	api.HandleFunc("/agents/{id}", agentHandler.GetAgent).Methods("GET")
+	api.HandleFunc("/agents/{id}", agentHandler.DeleteAgent).Methods("DELETE")
 	api.HandleFunc("/agents/{id}/status", agentHandler.UpdateAgentStatus).Methods("PUT")
 
 	// Tasks
@@ -80,6 +82,7 @@ func main() {
 	api.HandleFunc("/tasks", taskHandler.ListTasks).Methods("GET")
 	api.HandleFunc("/tasks/{id}", taskHandler.GetTask).Methods("GET")
 	api.HandleFunc("/tasks/{id}", taskHandler.UpdateTask).Methods("PUT")
+	api.HandleFunc("/tasks/{id}", taskHandler.DeleteTask).Methods("DELETE")
 	api.HandleFunc("/tasks/{id}/status", taskHandler.UpdateTaskStatus).Methods("PUT")
 
 	// Contexts

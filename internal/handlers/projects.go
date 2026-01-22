@@ -178,3 +178,82 @@ func (h *ProjectHandler) UpdateProjectStatus(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(project)
 }
+
+func (h *ProjectHandler) DeleteProject(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "Invalid project ID", http.StatusBadRequest)
+		return
+	}
+
+	// Begin transaction to delete project and related data
+	tx, err := h.db.Begin()
+	if err != nil {
+		http.Error(w, "Failed to start transaction", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	// Check if project exists
+	var exists bool
+	err = tx.QueryRow("SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1)", id).Scan(&exists)
+	if err != nil {
+		http.Error(w, "Failed to check project existence", http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		http.Error(w, "Project not found", http.StatusNotFound)
+		return
+	}
+
+	// Delete related contexts first (they reference tasks)
+	_, err = tx.Exec("DELETE FROM contexts WHERE task_id IN (SELECT id FROM tasks WHERE project_id = $1)", id)
+	if err != nil {
+		http.Error(w, "Failed to delete related contexts", http.StatusInternalServerError)
+		return
+	}
+
+	// Delete related tasks
+	_, err = tx.Exec("DELETE FROM tasks WHERE project_id = $1", id)
+	if err != nil {
+		http.Error(w, "Failed to delete related tasks", http.StatusInternalServerError)
+		return
+	}
+
+	// Delete related agents
+	_, err = tx.Exec("DELETE FROM agents WHERE project_id = $1", id)
+	if err != nil {
+		http.Error(w, "Failed to delete related agents", http.StatusInternalServerError)
+		return
+	}
+
+	// Finally, delete the project
+	result, err := tx.Exec("DELETE FROM projects WHERE id = $1", id)
+	if err != nil {
+		http.Error(w, "Failed to delete project", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		http.Error(w, "Project not found", http.StatusNotFound)
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast project deletion via WebSocket
+	h.hub.BroadcastToProject(id, "project_deleted", map[string]interface{}{
+		"project_id": id,
+		"deleted_at": time.Now(),
+	})
+
+	w.WriteHeader(http.StatusNoContent)
+}
