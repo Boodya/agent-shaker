@@ -104,6 +104,16 @@ func main() {
 
 	// Health check
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		// Set CORS headers manually for health endpoint
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
@@ -142,7 +152,17 @@ func main() {
 			return
 		}
 
-		// Other routes (health) get minimal middleware
+		// Health endpoint gets CORS
+		if req.URL.Path == "/health" {
+			middleware.Recovery(
+				middleware.Logger(
+					c.Handler(r),
+				),
+			).ServeHTTP(w, req)
+			return
+		}
+
+		// Other routes get minimal middleware
 		middleware.Recovery(
 			middleware.Logger(
 				r,

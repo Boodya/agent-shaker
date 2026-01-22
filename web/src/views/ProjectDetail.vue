@@ -861,6 +861,15 @@ get_project_contexts() {
       return JSON.stringify(config, null, 2)
     })
 
+    // Bundle all MCP configs together for the modal
+    const mcpConfig = computed(() => ({
+      mcpSettingsJson: mcpSettingsJson.value,
+      mcpVSCodeJson: mcpVSCodeJson.value,
+      mcpCopilotInstructions: mcpCopilotInstructions.value,
+      mcpPowerShellScript: mcpPowerShellScript.value,
+      mcpBashScript: mcpBashScript.value
+    }))
+
     onMounted(() => {
       const projectId = route.params.id
       projectStore.fetchProject(projectId)
@@ -1107,21 +1116,22 @@ get_project_contexts() {
     }
 
     const downloadMcpFile = (fileType) => {
+      const config = mcpConfig.value
       switch (fileType) {
         case 'settings':
-          downloadFile('settings.json', mcpSettingsJson.value, 'application/json')
+          downloadFile('settings.json', config.mcpSettingsJson, 'application/json')
           break
         case 'mcp':
-          downloadFile('mcp.json', mcpVSCodeJson.value, 'application/json')
+          downloadFile('mcp.json', config.mcpVSCodeJson, 'application/json')
           break
         case 'copilot':
-          downloadFile('copilot-instructions.md', mcpCopilotInstructions.value, 'text/markdown')
+          downloadFile('copilot-instructions.md', config.mcpCopilotInstructions, 'text/markdown')
           break
         case 'powershell':
-          downloadFile('mcp-agent.ps1', mcpPowerShellScript.value, 'text/plain')
+          downloadFile('mcp-agent.ps1', config.mcpPowerShellScript, 'text/plain')
           break
         case 'bash':
-          downloadFile('mcp-agent.sh', mcpBashScript.value, 'text/plain')
+          downloadFile('mcp-agent.sh', config.mcpBashScript, 'text/plain')
           break
       }
     }
@@ -1131,12 +1141,14 @@ get_project_contexts() {
       const { default: JSZip } = await import('jszip')
       const zip = new JSZip()
       
+      const config = mcpConfig.value
+      
       // Add files to zip with proper folder structure
-      zip.file('.vscode/settings.json', mcpSettingsJson.value)
-      zip.file('.vscode/mcp.json', mcpVSCodeJson.value)
-      zip.file('.github/copilot-instructions.md', mcpCopilotInstructions.value)
-      zip.file('scripts/mcp-agent.ps1', mcpPowerShellScript.value)
-      zip.file('scripts/mcp-agent.sh', mcpBashScript.value)
+      zip.file('.vscode/settings.json', config.mcpSettingsJson)
+      zip.file('.vscode/mcp.json', config.mcpVSCodeJson)
+      zip.file('.github/copilot-instructions.md', config.mcpCopilotInstructions)
+      zip.file('scripts/mcp-agent.ps1', config.mcpPowerShellScript)
+      zip.file('scripts/mcp-agent.sh', config.mcpBashScript)
       
       // Add a README
       const readmeContent = `# MCP Setup Files for ${mcpSetupAgent.value.name}
@@ -1304,20 +1316,14 @@ The mcp.json file includes:
       contextTagFilter,
       uniqueTags,
       filteredContexts,
-      mcpSettingsJson,
-      mcpCopilotInstructions,
-      mcpPowerShellScript,
-      mcpBashScript,
-      mcpVSCodeJson,
+      mcpConfig,
       openAddAgentModal,
       editAgent,
-      closeAgentModal,
       handleSaveAgent,
       confirmDeleteAgent,
       handleDeleteAgent,
       openAddTaskModal,
       editTask,
-      closeTaskModal,
       handleSaveTask,
       confirmDeleteTask,
       handleDeleteTask,

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/techbuzzz/agent-shaker/internal/database"
 )
 
@@ -494,13 +495,13 @@ func (h *MCPHandler) handleToolsList(ctx MCPContext) (interface{}, *JSONRPCError
 		},
 		{
 			Name:        "create_task",
-			Description: "Create a new task in a project",
+			Description: "Create a new task in a project. If connected with project_id and agent_id in URL, those will be used automatically.",
 			InputSchema: InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"project_id": map[string]interface{}{
 						"type":        "string",
-						"description": "The project ID",
+						"description": "The project ID (optional if project_id in MCP connection URL)",
 					},
 					"title": map[string]interface{}{
 						"type":        "string",
@@ -515,12 +516,16 @@ func (h *MCPHandler) handleToolsList(ctx MCPContext) (interface{}, *JSONRPCError
 						"description": "Priority: low, medium, high",
 						"enum":        []string{"low", "medium", "high"},
 					},
+					"created_by": map[string]interface{}{
+						"type":        "string",
+						"description": "Agent ID who creates the task (optional, will use agent_id from URL or first agent)",
+					},
 					"assigned_to": map[string]interface{}{
 						"type":        "string",
 						"description": "Agent ID to assign the task to",
 					},
 				},
-				Required: []string{"project_id", "title"},
+				Required: []string{"title"},
 			},
 		},
 		{
@@ -557,13 +562,17 @@ func (h *MCPHandler) handleToolsList(ctx MCPContext) (interface{}, *JSONRPCError
 		},
 		{
 			Name:        "add_context",
-			Description: "Add documentation or context to a project",
+			Description: "Add documentation or context to a project. If connected with project_id and agent_id in URL, those will be used automatically.",
 			InputSchema: InputSchema{
 				Type: "object",
 				Properties: map[string]interface{}{
 					"project_id": map[string]interface{}{
 						"type":        "string",
-						"description": "The project ID",
+						"description": "The project ID (optional if project_id in MCP connection URL)",
+					},
+					"agent_id": map[string]interface{}{
+						"type":        "string",
+						"description": "Agent ID who creates the context (optional, will use agent_id from URL or first agent)",
 					},
 					"title": map[string]interface{}{
 						"type":        "string",
@@ -579,7 +588,7 @@ func (h *MCPHandler) handleToolsList(ctx MCPContext) (interface{}, *JSONRPCError
 						"items":       map[string]string{"type": "string"},
 					},
 				},
-				Required: []string{"project_id", "title", "content"},
+				Required: []string{"title", "content"},
 			},
 		},
 		{
@@ -636,13 +645,13 @@ func (h *MCPHandler) handleToolsCall(params json.RawMessage, ctx MCPContext) (in
 	case "list_tasks":
 		resultText, isError = h.executeListTasks(callParams.Arguments)
 	case "create_task":
-		resultText, isError = h.executeCreateTask(callParams.Arguments)
+		resultText, isError = h.executeCreateTask(callParams.Arguments, ctx)
 	case "update_task_status":
 		resultText, isError = h.executeUpdateTaskStatus(callParams.Arguments)
 	case "list_contexts":
 		resultText, isError = h.executeListContexts(callParams.Arguments)
 	case "add_context":
-		resultText, isError = h.executeAddContext(callParams.Arguments)
+		resultText, isError = h.executeAddContext(callParams.Arguments, ctx)
 	case "get_dashboard":
 		resultText, isError = h.executeGetDashboard()
 	default:
@@ -958,15 +967,21 @@ func (h *MCPHandler) executeListTasks(args map[string]interface{}) (string, bool
 	return string(result), false
 }
 
-func (h *MCPHandler) executeCreateTask(args map[string]interface{}) (string, bool) {
+func (h *MCPHandler) executeCreateTask(args map[string]interface{}, ctx MCPContext) (string, bool) {
 	if h.db == nil {
 		return `{"error": "Database not connected"}`, true
 	}
 
 	projectID, ok := args["project_id"].(string)
-	if !ok {
-		return `{"error": "project_id is required"}`, true
+	if !ok || projectID == "" {
+		// Use project_id from context if not provided in args
+		if ctx.ProjectID != "" {
+			projectID = ctx.ProjectID
+		} else {
+			return `{"error": "project_id is required"}`, true
+		}
 	}
+
 	title, ok := args["title"].(string)
 	if !ok {
 		return `{"error": "title is required"}`, true
@@ -978,10 +993,24 @@ func (h *MCPHandler) executeCreateTask(args map[string]interface{}) (string, boo
 		priority = "medium"
 	}
 	assignedTo, _ := args["assigned_to"].(string)
+	createdBy, _ := args["created_by"].(string)
+
+	// Use agent_id from context if created_by not provided
+	if createdBy == "" && ctx.AgentID != "" {
+		createdBy = ctx.AgentID
+	}
+
+	// If still no created_by, try to use the first agent from the project
+	if createdBy == "" {
+		err := h.db.QueryRow(`SELECT id FROM agents WHERE project_id = $1 LIMIT 1`, projectID).Scan(&createdBy)
+		if err != nil {
+			return `{"error": "created_by is required or no agents found in project"}`, true
+		}
+	}
 
 	id := uuid.New().String()
-	query := `INSERT INTO tasks (id, project_id, title, description, status, priority, assigned_to) 
-	          VALUES ($1, $2, $3, $4, 'pending', $5, $6) RETURNING id, created_at`
+	query := `INSERT INTO tasks (id, project_id, title, description, status, priority, created_by, assigned_to) 
+	          VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7) RETURNING id, created_at`
 
 	var createdID string
 	var createdAt interface{}
@@ -990,7 +1019,7 @@ func (h *MCPHandler) executeCreateTask(args map[string]interface{}) (string, boo
 		assignedToPtr = &assignedTo
 	}
 
-	err := h.db.QueryRow(query, id, projectID, title, description, priority, assignedToPtr).Scan(&createdID, &createdAt)
+	err := h.db.QueryRow(query, id, projectID, title, description, priority, createdBy, assignedToPtr).Scan(&createdID, &createdAt)
 	if err != nil {
 		return fmt.Sprintf(`{"error": "%s"}`, err.Error()), true
 	}
@@ -1001,6 +1030,7 @@ func (h *MCPHandler) executeCreateTask(args map[string]interface{}) (string, boo
 		"title":      title,
 		"status":     "pending",
 		"priority":   priority,
+		"created_by": createdBy,
 		"created_at": createdAt,
 	}, "", "  ")
 	return string(result), false
@@ -1083,15 +1113,21 @@ func (h *MCPHandler) executeListContexts(args map[string]interface{}) (string, b
 	return string(result), false
 }
 
-func (h *MCPHandler) executeAddContext(args map[string]interface{}) (string, bool) {
+func (h *MCPHandler) executeAddContext(args map[string]interface{}, ctx MCPContext) (string, bool) {
 	if h.db == nil {
 		return `{"error": "Database not connected"}`, true
 	}
 
 	projectID, ok := args["project_id"].(string)
-	if !ok {
-		return `{"error": "project_id is required"}`, true
+	if !ok || projectID == "" {
+		// Use project_id from context if not provided in args
+		if ctx.ProjectID != "" {
+			projectID = ctx.ProjectID
+		} else {
+			return `{"error": "project_id is required"}`, true
+		}
 	}
+
 	title, ok := args["title"].(string)
 	if !ok {
 		return `{"error": "title is required"}`, true
@@ -1101,18 +1137,37 @@ func (h *MCPHandler) executeAddContext(args map[string]interface{}) (string, boo
 		return `{"error": "content is required"}`, true
 	}
 
-	var tagsJSON []byte
-	if tags, ok := args["tags"].([]interface{}); ok {
-		tagsJSON, _ = json.Marshal(tags)
-	} else {
-		tagsJSON = []byte("[]")
+	agentID, _ := args["agent_id"].(string)
+
+	// Use agent_id from context if not provided in args
+	if agentID == "" && ctx.AgentID != "" {
+		agentID = ctx.AgentID
+	}
+
+	// If still no agent_id, try to use the first agent from the project
+	if agentID == "" {
+		err := h.db.QueryRow(`SELECT id FROM agents WHERE project_id = $1 LIMIT 1`, projectID).Scan(&agentID)
+		if err != nil {
+			return `{"error": "agent_id is required or no agents found in project"}`, true
+		}
+	}
+
+	// Convert tags to PostgreSQL array format using pq.Array
+	var tags []string
+	if tagsInterface, ok := args["tags"].([]interface{}); ok {
+		for _, tag := range tagsInterface {
+			if tagStr, ok := tag.(string); ok {
+				tags = append(tags, tagStr)
+			}
+		}
 	}
 
 	id := uuid.New().String()
-	query := `INSERT INTO contexts (id, project_id, title, content, tags) VALUES ($1, $2, $3, $4, $5) RETURNING created_at`
+	query := `INSERT INTO contexts (id, project_id, agent_id, title, content, tags) VALUES ($1, $2, $3, $4, $5, $6) RETURNING created_at`
 
 	var createdAt interface{}
-	err := h.db.QueryRow(query, id, projectID, title, content, tagsJSON).Scan(&createdAt)
+	// Use pq.Array for proper PostgreSQL array handling
+	err := h.db.QueryRow(query, id, projectID, agentID, title, content, pq.Array(tags)).Scan(&createdAt)
 	if err != nil {
 		return fmt.Sprintf(`{"error": "%s"}`, err.Error()), true
 	}
@@ -1121,6 +1176,8 @@ func (h *MCPHandler) executeAddContext(args map[string]interface{}) (string, boo
 		"success":    true,
 		"id":         id,
 		"title":      title,
+		"agent_id":   agentID,
+		"tags":       tags,
 		"created_at": createdAt,
 	}, "", "  ")
 	return string(result), false
