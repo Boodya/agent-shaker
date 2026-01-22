@@ -12,66 +12,73 @@
       <p class="text-slate-600">Overview of your MCP Task Tracker</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="card group cursor-pointer transform hover:scale-105 transition-all duration-200">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-            <span class="text-2xl">📁</span>
-          </div>
-          <div>
-            <h3 class="text-2xl font-bold text-blue-600">{{ projects.length }}</h3>
-            <p class="text-slate-600 text-sm font-medium">Projects</p>
-          </div>
-        </div>
+    <div v-if="loading" class="text-center py-12 text-gray-500">Loading dashboard...</div>
+    <div v-else-if="error" class="p-4 bg-red-50 text-red-600 rounded-md mb-4">{{ error }}</div>
+
+    <div v-else>
+      <!-- Stats Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Projects Card -->
+        <StatCard
+          title="Projects"
+          :value="stats.projects.total"
+          icon="📁"
+          iconBgColor="#3b82f6"
+          :breakdown="[
+            { label: 'Active', value: stats.projects.active, color: '#10b981' },
+            { label: 'Archived', value: stats.projects.archived, color: '#6b7280' }
+          ]"
+        />
+
+        <!-- Agents Card -->
+        <StatCard
+          title="Agents"
+          :value="stats.agents.total"
+          icon="🤖"
+          iconBgColor="#10b981"
+          :breakdown="[
+            { label: 'Active', value: stats.agents.active, color: '#10b981' },
+            { label: 'Idle', value: stats.agents.idle, color: '#f59e0b' },
+            { label: 'Offline', value: stats.agents.offline, color: '#ef4444' }
+          ]"
+        />
+
+        <!-- Tasks Card -->
+        <StatCard
+          title="Tasks"
+          :value="stats.tasks.total"
+          icon="📋"
+          iconBgColor="#8b5cf6"
+          :breakdown="[
+            { label: 'Pending', value: stats.tasks.pending, color: '#6b7280' },
+            { label: 'In Progress', value: stats.tasks.in_progress, color: '#3b82f6' },
+            { label: 'Blocked', value: stats.tasks.blocked, color: '#ef4444' }
+          ]"
+        />
+
+        <!-- Completed Tasks Card -->
+        <StatCard
+          title="Completed"
+          :value="stats.tasks.done"
+          icon="✅"
+          iconBgColor="#10b981"
+          :breakdown="[
+            { label: 'Contexts', value: stats.contexts.total, color: '#8b5cf6' }
+          ]"
+        />
       </div>
 
-      <div class="card group cursor-pointer transform hover:scale-105 transition-all duration-200">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-            <span class="text-2xl">🤖</span>
+      <!-- Recent Activity Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+              <span class="text-white text-sm">📁</span>
+            </div>
+            <h3 class="text-xl font-semibold text-slate-900">Recent Projects</h3>
           </div>
-          <div>
-            <h3 class="text-2xl font-bold text-green-600">{{ agents.length }}</h3>
-            <p class="text-slate-600 text-sm font-medium">Agents</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="card group cursor-pointer transform hover:scale-105 transition-all duration-200">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-            <span class="text-2xl">📋</span>
-          </div>
-          <div>
-            <h3 class="text-2xl font-bold text-purple-600">{{ tasks.length }}</h3>
-            <p class="text-slate-600 text-sm font-medium">Total Tasks</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="card group cursor-pointer transform hover:scale-105 transition-all duration-200">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-            <span class="text-2xl">✅</span>
-          </div>
-          <div>
-            <h3 class="text-2xl font-bold text-emerald-600">{{ completedTasks }}</h3>
-            <p class="text-slate-600 text-sm font-medium">Completed</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="card">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-            <span class="text-white text-sm">📁</span>
-          </div>
-          <h3 class="text-xl font-semibold text-slate-900">Recent Projects</h3>
-        </div>
-        <div class="space-y-3">
-          <div v-for="project in recentProjects" :key="project.id" class="group rounded-xl overflow-hidden border border-slate-200 hover:border-slate-300 transition-all duration-200">
+          <div class="space-y-3">
+            <div v-for="project in recentProjects" :key="project.id" class="group rounded-xl overflow-hidden border border-slate-200 hover:border-slate-300 transition-all duration-200">
             <router-link :to="`/projects/${project.id}`" class="block p-4 hover:bg-slate-50 transition-colors">
               <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -149,23 +156,53 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import { useAgentStore } from '../stores/agentStore'
 import { useTaskStore } from '../stores/taskStore'
+import StatCard from '../components/StatCard.vue'
+import api from '../services/api'
 
 export default {
   name: 'Dashboard',
+  components: {
+    StatCard
+  },
   setup() {
     const projectStore = useProjectStore()
     const agentStore = useAgentStore()
     const taskStore = useTaskStore()
 
-    onMounted(() => {
+    const loading = ref(true)
+    const error = ref(null)
+    const stats = ref({
+      projects: { total: 0, active: 0, archived: 0 },
+      agents: { total: 0, active: 0, idle: 0, offline: 0 },
+      tasks: { total: 0, pending: 0, in_progress: 0, done: 0, blocked: 0 },
+      contexts: { total: 0 }
+    })
+
+    const fetchDashboardStats = async () => {
+      try {
+        loading.value = true
+        error.value = null
+        const response = await api.get('/api/dashboard')
+        stats.value = response.data
+      } catch (err) {
+        console.error('Error fetching dashboard stats:', err)
+        error.value = 'Failed to load dashboard statistics'
+      } finally {
+        loading.value = false
+      }
+    }
+
+    onMounted(async () => {
+      await fetchDashboardStats()
       projectStore.fetchProjects()
       agentStore.fetchAgents()
       taskStore.fetchTasks()
@@ -176,22 +213,21 @@ export default {
       agentStore.agents.filter(a => a.status === 'active').slice(0, 5)
     )
     const recentTasks = computed(() => taskStore.tasks.slice(0, 10))
-    const completedTasks = computed(() => 
-      taskStore.tasks.filter(t => t.status === 'done').length
-    )
 
     const formatDate = (dateString) => {
       return new Date(dateString).toLocaleDateString()
     }
 
     return {
-      projects: projectStore.projects,
-      agents: agentStore.agents,
-      tasks: taskStore.tasks,
+      loading,
+      error,
+      stats,
+      projects: computed(() => projectStore.projects),
+      agents: computed(() => agentStore.agents),
+      tasks: computed(() => taskStore.tasks),
       recentProjects,
       activeAgents,
       recentTasks,
-      completedTasks,
       formatDate
     }
   }

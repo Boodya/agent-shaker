@@ -4,9 +4,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col sm:flex-row justify-between items-center py-4 gap-3">
           <div class="flex items-center gap-2">
-            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span class="text-white font-bold text-sm">🚀</span>
-            </div>
+            <img src="@/assets/icon.png" alt="MCP Logo" class="w-8 h-8 rounded-lg" />
             <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               MCP Task Tracker
             </h1>
@@ -70,9 +68,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
           <div class="flex items-center gap-2">
-            <div class="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center">
-              <span class="text-white font-bold text-xs">🚀</span>
-            </div>
+            <img src="@/assets/icon.png" alt="MCP Logo" class="w-6 h-6 rounded-md" />
             <span class="text-slate-600 text-sm">© 2026 MCP Task Tracker</span>
           </div>
           <span class="text-slate-500 text-sm">AI Agent Coordination System</span>

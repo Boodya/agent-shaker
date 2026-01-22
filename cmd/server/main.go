@@ -52,12 +52,16 @@ func main() {
 	taskHandler := handlers.NewTaskHandler(db, hub)
 	contextHandler := handlers.NewContextHandler(db, hub)
 	wsHandler := handlers.NewWebSocketHandler(hub)
+	dashboardHandler := handlers.NewDashboardHandler(db)
 
 	// Setup router
 	r := mux.NewRouter()
 
 	// API routes
 	api := r.PathPrefix("/api").Subrouter()
+
+	// Dashboard
+	api.HandleFunc("/dashboard", dashboardHandler.GetDashboardStats).Methods("GET")
 
 	// Projects
 	api.HandleFunc("/projects", projectHandler.CreateProject).Methods("POST")
