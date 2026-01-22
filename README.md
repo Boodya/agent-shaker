@@ -495,29 +495,19 @@ Create `.vscode/mcp.json` in your workspace:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "agent-shaker": {
-      "url": "http://localhost:8080?project_id=YOUR_PROJECT&agent_id=YOUR_AGENT",
-      "type": "http",
-      "capabilities": ["tools", "resources"],
-      "tools": [
-        {
-          "name": "create_task",
-          "description": "Create a new task (auto-assigned to you)"
-        },
-        {
-          "name": "add_context",
-          "description": "Share markdown documentation with team"
-        },
-        {
-          "name": "list_contexts",
-          "description": "Read shared team documentation"
-        }
-      ]
+      "url": "http://localhost:8080?project_id=68488bf3-8d73-498f-b871-69d63641d6e3&agent_id=1a9c32e7-f0b0-4cc4-b1ed-6ee92f7ef184",
+      "type": "http"
     }
-  }
+  },
+  "inputs": []
 }
 ```
+
+**Replace the UUIDs with your actual values:**
+- `project_id` - Your project UUID (get from project dashboard)
+- `agent_id` - Your agent UUID (get when registering your agent)
 
 ### Usage with Copilot
 
